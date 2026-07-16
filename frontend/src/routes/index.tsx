@@ -75,7 +75,7 @@ function Index() {
           <div className="lg:col-span-8">
             <div className="font-mono text-xs uppercase tracking-[0.3em] text-lime mb-8 flex items-center gap-3">
               <span className="w-8 h-px bg-lime" />
-              v0.1 · local-first · adversarial ML
+              v0.1 · server-side · adversarial ML
             </div>
             <h1 className="font-display font-light text-5xl sm:text-7xl lg:text-[8.5rem] leading-[0.9] tracking-tight text-foreground">
               Ink
@@ -184,11 +184,10 @@ function Index() {
           <div className="grid lg:grid-cols-12 gap-10">
             <div className="lg:col-span-7 space-y-8">
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Inkshield generates a structured, high-frequency perturbation
-                field inspired by gradient-sign attacks on modern vision
-                architectures. It blends into your artwork inside the browser —
-                nearly imperceptible to a viewer, but disruptive to the feature
-                extractors that power scrapers and captioners.
+                Inkshield applies a real PyTorch PGD attack server-side against
+                a pretrained ResNet-50. The perturbation is nearly imperceptible
+                to a viewer, but disruptive to the feature extractors that power
+                scrapers and AI captioners.
               </p>
 
 
@@ -247,7 +246,7 @@ function Index() {
           <div className="mt-24 grid lg:grid-cols-12 gap-10 items-end">
             <div className="lg:col-span-5">
               <div className="font-mono text-xs uppercase tracking-widest text-amber mb-4">
-                In-browser pipeline
+                Server-side pipeline
               </div>
               <h3 className="font-display text-3xl lg:text-5xl leading-tight">
                   Real model,
@@ -326,13 +325,14 @@ function Index() {
           <div className="lg:col-span-5">
             <SectionLabel>§ 04 · Privacy</SectionLabel>
             <h2 className="mt-6 font-display text-4xl lg:text-6xl leading-none">
-              Your files
+              Your images,
               <br />
-              <span className="italic text-lime">never leave.</span>
+              <span className="italic text-lime">privately stored.</span>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-md">
-              Inkshield was designed around a local-first workflow. No cloud inference,
-              no telemetry, no uploads. Just your machine, your art.
+              Images are uploaded over HTTPS, processed in isolation, and stored
+              in a private S3 bucket. No third-party AI services, no telemetry,
+              no public access — only you hold the presigned download link.
             </p>
           </div>
           <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
@@ -361,9 +361,9 @@ function Index() {
           </div>
           <div className="lg:col-span-9">
             <h2 className="font-display text-4xl lg:text-6xl leading-none">
-              Lightweight, browser-native,
+              Open source,
               <br />
-              <span className="italic text-amber">install-free.</span>
+              <span className="italic text-amber">self-hostable.</span>
             </h2>
 
           </div>
