@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import gradcamImg from "@/assets/gradcam-viz.jpg";
 
-// Public domain painting — Franz Xaver Winterhalter, 1860 (Wikimedia Commons)
-const heroImg =
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/Franz_Xaver_Winterhalter_-_Carmen%2C_Duchess_of_Montmorency_%281860%29.jpg/1280px-Franz_Xaver_Winterhalter_-_Carmen%2C_Duchess_of_Montmorency_%281860%29.jpg";
+const heroImg = "/carmen-aguado.png";
 import { ProtectionLab } from "@/components/ProtectionLab";
 
 export const Route = createFileRoute("/")({
