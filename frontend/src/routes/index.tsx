@@ -125,7 +125,7 @@ function Index() {
 
       {/* MARQUEE */}
       <section className="border-y border-border bg-ink overflow-hidden py-6">
-        <div className="flex whitespace-nowrap font-display italic text-3xl md:text-5xl text-muted-foreground" style={{ animation: "marquee 30s linear infinite" }}>
+        <div className="flex whitespace-nowrap font-display italic text-3xl md:text-5xl text-muted-foreground" style={{ animation: "marquee 20s linear infinite" }}>
           {Array.from({ length: 2 }).map((_, i) => (
             <div key={i} className="flex items-center gap-10 pr-10 shrink-0">
               <span>digital self-defense</span>
