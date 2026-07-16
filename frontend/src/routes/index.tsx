@@ -86,7 +86,7 @@ function Index() {
             </h1>
             <p className="mt-10 max-w-xl text-lg lg:text-xl text-muted-foreground leading-relaxed">
               Protecting creative work in the age of generative AI. Inkshield applies
-              carefully generated perturbations to artwork - nearly invisible to
+              carefully generated perturbations to artwork, nearly invisible to
               humans, disruptive to the vision models behind large-scale scraping.
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
@@ -118,7 +118,7 @@ function Index() {
         </div>
 
         <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-10 pb-6 font-mono text-[0.65rem] uppercase tracking-[0.25em] text-muted-foreground/70">
-          image · Franz Xaver Winterhalter, <span className="italic">Carmen Aguado, Duchesse de Montmorency</span>, 1860 - courtesy Musée National du Château de Versailles
+          image · Franz Xaver Winterhalter, <span className="italic">Carmen Aguado, Duchesse de Montmorency</span>, 1860, courtesy Musée National du Château de Versailles
         </div>
       </section>
 
@@ -154,13 +154,13 @@ function Index() {
             The line between{" "}
             <span className="italic text-lime">inspiration</span> and{" "}
             <span className="italic text-amber">scraping</span> has blurred. The
-            essence of a body of work now dissolves into training sets - without
+            essence of a body of work now dissolves into training sets, without
             permission, without attribution, without consent.
           </p>
           <p className="text-lg text-muted-foreground max-w-2xl leading-relaxed">
             Inkshield was created as a form of digital self-defense. A way for artists
             to protect their visual identity and retain control over how their
-            work is used online - using the same adversarial techniques that
+            work is used online, using the same adversarial techniques that
             expose weaknesses in neural networks.
           </p>
         </div>
@@ -208,7 +208,7 @@ function Index() {
                 <MethodCard
                   tag="Iterative · multi-step"
                   name="PGD"
-                  desc="Projected Gradient Descent. Iteratively nudges pixels in the gradient direction for 8 steps, clipped to an epsilon-ball - stronger protection than single-step FGSM."
+                  desc="Projected Gradient Descent. Iteratively nudges pixels in the gradient direction for 8 steps, clipped to an epsilon-ball, stronger protection than single-step FGSM."
                   accent
                 />
                 <MethodCard
@@ -236,7 +236,7 @@ function Index() {
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
                     The model's focus shifts away from the subject after
-                    perturbation - feature recognition disrupted.
+                    perturbation, feature recognition disrupted.
                   </div>
                 </figcaption>
               </figure>
@@ -282,7 +282,7 @@ function Index() {
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
               A dial from invisible to unmistakable. The default of 0.020 sits at
-              the sweet spot - minor grain only visible at zoom, strong enough to
+              the sweet spot, minor grain only visible at zoom, strong enough to
               disrupt ResNet-50 classification.
             </p>
           </div>
@@ -333,7 +333,7 @@ function Index() {
             <p className="mt-6 text-lg text-muted-foreground max-w-md">
               Images are uploaded over HTTPS, processed in isolation, and stored
               in a private S3 bucket. No third-party AI services, no telemetry,
-              no public access - only you hold the presigned download link.
+              no public access, only you hold the presigned download link.
             </p>
           </div>
           <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
@@ -438,7 +438,7 @@ function Index() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 font-mono text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className="inline-block w-2 h-2 bg-lime rounded-full" />
-            <span>inkshield - a form of digital self-defense</span>
+            <span>inkshield, a form of digital self-defense</span>
           </div>
           <div className="flex gap-6 uppercase tracking-widest">
             <a href="#" className="hover:text-lime transition-colors">GitHub</a>
