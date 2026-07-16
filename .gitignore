@@ -1,0 +1,21 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.env
+
+# General
+.DS_Store
+*.log
+test_protected.png
+sample.jpg
