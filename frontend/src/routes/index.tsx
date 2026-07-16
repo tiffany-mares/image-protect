@@ -10,9 +10,10 @@ export const Route = createFileRoute("/")({
 
 const strengths = [
   { name: "Ultra-Subtle", eps: "0.005", quality: "Very High", visibility: "Virtually invisible" },
-  { name: "Recommended", eps: "0.010", quality: "High", visibility: "Indistinguishable" },
-  { name: "Moderate", eps: "0.020", quality: "Medium", visibility: "Minor grain on zoom" },
-  { name: "Aggressive", eps: "0.040", quality: "Lower", visibility: "Visible artifacts" },
+  { name: "Subtle",       eps: "0.010", quality: "High",      visibility: "Indistinguishable" },
+  { name: "Recommended",  eps: "0.020", quality: "Medium",    visibility: "Minor grain on zoom" },
+  { name: "Aggressive",   eps: "0.040", quality: "Lower",     visibility: "Visible artifacts" },
+  { name: "Maximum",      eps: "0.050", quality: "Lowest",    visibility: "Visible noise" },
 ];
 
 const privacy = [
@@ -280,9 +281,9 @@ function Index() {
               Pick your <span className="italic text-amber">epsilon</span>.
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
-              A dial from invisible to unmistakable. Recommended for most artists
-              sits at 0.010 — indistinguishable from the original at any normal
-              viewing distance.
+              A dial from invisible to unmistakable. The default of 0.020 sits at
+              the sweet spot — minor grain only visible at zoom, strong enough to
+              disrupt ResNet-50 classification.
             </p>
           </div>
         </div>
