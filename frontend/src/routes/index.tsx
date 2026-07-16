@@ -259,7 +259,7 @@ function Index() {
                   pretrained ResNet-50 — not a browser approximation:
                 </p>
                 <ul className="space-y-2 font-mono text-sm">
-                  <li className="flex gap-3"><span className="text-lime">→</span> image uploaded over HTTPS to FastAPI on EC2</li>
+                  <li className="flex gap-3"><span className="text-lime">→</span> image uploaded to FastAPI on EC2</li>
                   <li className="flex gap-3"><span className="text-lime">→</span> 8-step PGD iterates gradient sign against ResNet-50</li>
                   <li className="flex gap-3"><span className="text-lime">→</span> protected image stored privately in S3, returned as presigned URL</li>
                 </ul>
