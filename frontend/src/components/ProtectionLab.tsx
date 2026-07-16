@@ -95,7 +95,7 @@ export function ProtectionLab() {
               <span className="italic text-lime">Then break its vision.</span>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
-              Drop in an image. Apply Inkshield — the real PyTorch PGD attack
+              Drop in an image. Apply Inkshield - the real PyTorch PGD attack
               runs server-side against ResNet-50. Before and after predictions
               show exactly how the model is fooled. Download the protected file
               from S3.
