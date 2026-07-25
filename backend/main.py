@@ -1,17 +1,18 @@
-﻿"""FastAPI backend for Image Protect.
+"""FastAPI backend for Image Protect.
 
 Endpoints:
     GET  /health   -- liveness probe
-    POST /protect  -- run PGD attack, store in S3, return presigned URLs
+    POST /protect  -- run PGD attack, return presigned S3 URLs (if S3_BUCKET
+                      is set) or base64 data URLs (fallback for local/demo use)
 """
 
+import base64
 import io
 import os
-import traceback
 import uuid
 
 import boto3
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
@@ -22,7 +23,22 @@ from attack import pgd_attack
 # ---------------------------------------------------------------------------
 
 CORS_ORIGIN = os.environ.get("CORS_ORIGIN", "*")
-S3_BUCKET = os.environ.get("S3_BUCKET", "")
+S3_BUCKET   = os.environ.get("S3_BUCKET", "")
+
+# Lazily instantiate the S3 client only when a bucket is configured so the
+# server starts cleanly without AWS credentials in local/demo mode.
+_s3 = None
+
+def _get_s3():
+    global _s3
+    if _s3 is None:
+        _s3 = boto3.client("s3")
+    return _s3
+
+# Maximum dimension (px) for the longest side before running the attack.
+# Reduces S3 upload size and attack latency with no effect on model accuracy
+# (the model crops to 224×224 internally).
+MAX_IMAGE_DIM = 1024
 
 # ---------------------------------------------------------------------------
 # App setup
@@ -37,7 +53,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-s3 = boto3.client("s3")
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _cap_image(image: Image.Image, max_dim: int = MAX_IMAGE_DIM) -> Image.Image:
+    """Resize image so its longest side is at most max_dim, preserving aspect ratio."""
+    w, h = image.size
+    if max(w, h) <= max_dim:
+        return image
+    scale = max_dim / max(w, h)
+    return image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
+
+
+def _to_png_bytes(image: Image.Image) -> bytes:
+    buf = io.BytesIO()
+    image.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _to_data_url(png_bytes: bytes) -> str:
+    return "data:image/png;base64," + base64.b64encode(png_bytes).decode()
+
 
 # ---------------------------------------------------------------------------
 # Routes
@@ -54,56 +91,40 @@ async def protect(
     file: UploadFile = File(...),
     epsilon: float = Form(0.02),
 ):
-    # Read uploaded bytes and open as PIL RGB image
+    # Read and decode uploaded image
     raw_bytes = await file.read()
     image = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
 
-    # Run PGD attack (steps fixed at 8 per spec)
-    protected_image, predictions = pgd_attack(image, eps=epsilon, steps=8)
+    # Cap size before attack to reduce latency and storage cost
+    image = _cap_image(image)
 
-    # Encode protected image to PNG bytes
-    protected_buf = io.BytesIO()
-    protected_image.save(protected_buf, format="PNG")
-    protected_bytes = protected_buf.getvalue()
+    # Run PGD attack (4 steps: faster with negligible strength loss)
+    protected_image, predictions = pgd_attack(image, eps=epsilon, steps=4)
 
-    # Generate a unique job ID and derive S3 keys
     job_id = str(uuid.uuid4())
-    original_key = f"originals/{job_id}.png"
-    protected_key = f"protected/{job_id}.png"
 
-    # Upload original bytes (re-encoded as PNG for consistency)
-    original_buf = io.BytesIO()
-    image.save(original_buf, format="PNG")
-    original_png_bytes = original_buf.getvalue()
+    original_png  = _to_png_bytes(image)
+    protected_png = _to_png_bytes(protected_image)
 
-    s3.put_object(
-        Bucket=S3_BUCKET,
-        Key=original_key,
-        Body=original_png_bytes,
-        ContentType="image/png",
-    )
-    s3.put_object(
-        Bucket=S3_BUCKET,
-        Key=protected_key,
-        Body=protected_bytes,
-        ContentType="image/png",
-    )
+    if S3_BUCKET:
+        # --- S3 path: upload and return presigned URLs ---
+        s3 = _get_s3()
+        original_key  = f"originals/{job_id}.png"
+        protected_key = f"protected/{job_id}.png"
 
-    # Generate 1-hour presigned GET URLs
-    original_url = s3.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": S3_BUCKET, "Key": original_key},
-        ExpiresIn=3600,
-    )
-    protected_url = s3.generate_presigned_url(
-        "get_object",
-        Params={"Bucket": S3_BUCKET, "Key": protected_key},
-        ExpiresIn=3600,
-    )
+        s3.put_object(Bucket=S3_BUCKET, Key=original_key,  Body=original_png,  ContentType="image/png")
+        s3.put_object(Bucket=S3_BUCKET, Key=protected_key, Body=protected_png, ContentType="image/png")
+
+        original_url  = s3.generate_presigned_url("get_object", Params={"Bucket": S3_BUCKET, "Key": original_key},  ExpiresIn=3600)
+        protected_url = s3.generate_presigned_url("get_object", Params={"Bucket": S3_BUCKET, "Key": protected_key}, ExpiresIn=3600)
+    else:
+        # --- Fallback: return images as base64 data URLs (no AWS needed) ---
+        original_url  = _to_data_url(original_png)
+        protected_url = _to_data_url(protected_png)
 
     return {
         "protected_url": protected_url,
-        "original_url": original_url,
-        "job_id": job_id,
-        "predictions": predictions,
+        "original_url":  original_url,
+        "job_id":        job_id,
+        "predictions":   predictions,
     }

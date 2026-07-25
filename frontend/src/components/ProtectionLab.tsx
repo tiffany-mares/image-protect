@@ -25,9 +25,11 @@ export function ProtectionLab() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [epsilon, setEpsilon] = useState(0.02);
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ApiResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadFile = useCallback((f: File) => {
     if (!f.type.startsWith("image/")) return;
@@ -43,8 +45,14 @@ export function ProtectionLab() {
   const runProtection = useCallback(async () => {
     if (!file) return;
     setLoading(true);
+    setElapsed(0);
     setError(null);
     setResult(null);
+
+    // Start elapsed-seconds timer
+    timerRef.current = setInterval(() => {
+      setElapsed((s) => s + 1);
+    }, 1000);
 
     const form = new FormData();
     form.append("file", file);
@@ -64,6 +72,7 @@ export function ProtectionLab() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Protection failed");
     } finally {
+      if (timerRef.current) clearInterval(timerRef.current);
       setLoading(false);
     }
   }, [file, epsilon]);
@@ -159,7 +168,7 @@ export function ProtectionLab() {
               disabled={!hasImage || loading}
               className="font-mono text-xs uppercase tracking-widest px-4 py-3 bg-lime text-primary-foreground hover:bg-amber transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              {loading ? "Running PGD…" : "⚡ Protect with PGD"}
+              {loading ? `Running PGD… ${elapsed}s` : "⚡ Protect with PGD"}
             </button>
             <button
               onClick={download}

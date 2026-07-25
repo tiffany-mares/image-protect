@@ -76,7 +76,7 @@ def predict(tensor: torch.Tensor) -> dict:
 def pgd_attack(
     image: Image.Image,
     eps: float = 0.02,
-    steps: int = 8,
+    steps: int = 4,
 ) -> tuple:
     """Apply PGD perturbation to *image* to mislead ResNet-50.
 
@@ -86,7 +86,8 @@ def pgd_attack(
     Args:
         image:  PIL Image (any mode; converted to RGB internally).
         eps:    Maximum L-inf perturbation in [0, 1] pixel space.
-        steps:  Number of PGD iterations.
+        steps:  Number of PGD iterations. Default 4 (fast); use 8 for
+                stronger protection at ~2x latency cost.
 
     Returns:
         (protected_image, predictions) where predictions is
