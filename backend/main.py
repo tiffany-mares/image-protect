@@ -35,11 +35,6 @@ def _get_s3():
         _s3 = boto3.client("s3")
     return _s3
 
-# Maximum dimension (px) for the longest side before running the attack.
-# Reduces S3 upload size and attack latency with no effect on model accuracy
-# (the model crops to 224×224 internally).
-MAX_IMAGE_DIM = 1024
-
 # ---------------------------------------------------------------------------
 # App setup
 # ---------------------------------------------------------------------------
@@ -56,15 +51,6 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _cap_image(image: Image.Image, max_dim: int = MAX_IMAGE_DIM) -> Image.Image:
-    """Resize image so its longest side is at most max_dim, preserving aspect ratio."""
-    w, h = image.size
-    if max(w, h) <= max_dim:
-        return image
-    scale = max_dim / max(w, h)
-    return image.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
-
 
 def _to_png_bytes(image: Image.Image) -> bytes:
     buf = io.BytesIO()
@@ -94,9 +80,6 @@ async def protect(
     # Read and decode uploaded image
     raw_bytes = await file.read()
     image = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
-
-    # Cap size before attack to reduce latency and storage cost
-    image = _cap_image(image)
 
     # Run PGD attack (4 steps: faster with negligible strength loss)
     protected_image, predictions = pgd_attack(image, eps=epsilon, steps=4)

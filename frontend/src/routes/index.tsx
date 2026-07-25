@@ -24,8 +24,8 @@ const privacy = [
 ];
 
 const stack = {
-  Engine: ["PyTorch ResNet-50", "PGD adversarial attack", "8-step iterative"],
-  Backend: ["FastAPI on EC2", "AWS S3 storage", "boto3 presigned URLs"],
+  Engine: ["PyTorch ResNet-50", "TF MobileNetV2", "Ensemble PGD attack"],
+  Backend: ["FastAPI on EC2", "AWS S3 storage", "MongoDB Atlas logging"],
   Frontend: ["React 19", "TanStack Start", "Tailwind v4"],
 };
 
@@ -387,10 +387,11 @@ function Index() {
 
         <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 font-mono text-sm">
           {[
-            "Server-side PGD adversarial attack",
+            "Ensemble PGD attack (ResNet-50 + MobileNetV2)",
             "Adjustable epsilon slider",
             "Before/after image comparison",
-            "ResNet-50 prediction before/after",
+            "Both model predictions shown side by side",
+            "MongoDB job history logging",
             "Presigned S3 download URLs",
             "One-click PNG download",
           ].map((f) => (

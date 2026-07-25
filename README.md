@@ -46,7 +46,7 @@ The protected image is stored privately in S3; the user receives time-limited pr
 
 ### Adversarial Attack: Projected Gradient Descent (PGD)
 
-The core technique is a **PGD (Projected Gradient Descent) untargeted attack** against a pretrained ResNet-50 proxy model. PGD is an iterative variant of the Fast Gradient Sign Method (FGSM) that produces stronger, more robust perturbations within a bounded pixel budget.
+The core technique is an **ensemble PGD (Projected Gradient Descent) untargeted attack** that runs simultaneously against two pretrained proxy models: **ResNet-50** (PyTorch) and **MobileNetV2** (TensorFlow). PGD is an iterative variant of the Fast Gradient Sign Method (FGSM) that produces stronger, more robust perturbations within a bounded pixel budget. Using two architectures makes the perturbation more likely to transfer to unseen scrapers.
 
 **Algorithm:**
 
@@ -59,7 +59,7 @@ Where:
 - `x` is the original image tensor (values in `[0, 1]`).
 - `eps` (epsilon) is the perturbation budget — the maximum L∞ distance any pixel may move from its original value. Typical values: `0.01` (subtle) to `0.04` (strong).
 - `alpha` is the per-step size, computed as `alpha = eps / steps * 2.5` — a rule-of-thumb that scales step size to the budget and number of iterations.
-- `steps` controls how many PGD iterations are run. More steps → stronger attack, slower inference. Default: `8`.
+- `steps` controls how many PGD iterations are run. More steps → stronger attack, slower inference. Default: `4` (each step runs two sub-steps: one ResNet-50 gradient, one MobileNetV2 gradient).
 - `L(theta, x_t, y)` is the cross-entropy loss of the proxy model against the original predicted class `y`. Maximising this loss pushes the image away from the original classification.
 - `Clip_{x,eps}` projects back onto the L∞ ball centred at `x` with radius `eps`, then clamps to `[0, 1]`.
 
@@ -71,7 +71,11 @@ Where:
 | `steps`   | Stronger attack, slower (CPU-bound)              | Faster, potentially weaker        |
 | `alpha`   | Larger gradient steps (coarser)                  | Finer convergence                 |
 
-The proxy model is **ResNet-50 pretrained on ImageNet-1K** (`ResNet50_Weights.IMAGENET1K_V2`). It is loaded once at module import time and never reloaded per request.
+Proxy models used:
+- **ResNet-50 (PyTorch)** — `ResNet50_Weights.IMAGENET1K_V2`, loaded once at startup.
+- **MobileNetV2 (TensorFlow)** — `tf.keras.applications.MobileNetV2(weights="imagenet")`, loaded once at startup.
+
+Both models run on CPU; weights are downloaded automatically by `torchvision` and `keras` on first run and cached locally.
 
 ### System Architecture
 
@@ -83,19 +87,27 @@ The proxy model is **ResNet-50 pretrained on ImageNet-1K** (`ResNet50_Weights.IM
 [FastAPI on EC2 :8000]
    |            |
    |            v
-   |     [PyTorch PGD attack, ResNet-50 proxy model]
+   |     [Ensemble PGD attack]
+   |       |             |
+   |       v             v
+   |  [ResNet-50]   [MobileNetV2]
+   |  (PyTorch)     (TensorFlow)
    |            |
    v            v
 [boto3] --> [S3 bucket: originals/ + protected/]
    |
    v
-[JSON response: protected image URL, pre/post predictions, confidence deltas]
+[MongoDB Atlas: inkshield.jobs]
+   |
+   v
+[JSON response: protected image URL, predictions (resnet50 + mobilenet), job_id]
 ```
 
 **Key design decisions:**
-- The ResNet-50 proxy is used as a *stand-in* for the class of models scrapers commonly use. Because many vision models share convolutional feature representations, perturbations crafted against ResNet-50 often transfer to other architectures.
+- Two proxy architectures (ResNet-50 + MobileNetV2) increase the likelihood that perturbations transfer to unseen scrapers. Because many vision models share convolutional feature representations, perturbations crafted against multiple architectures simultaneously are more robust than single-model attacks.
 - S3 is private (`BlockPublicAccess` enabled); images are served via **presigned URLs** with a 1-hour expiry, so no image is ever publicly readable.
 - The EC2 instance uses an **IAM instance role** — no AWS credentials are stored in code or environment files.
+- Every `/protect` call logs a job document to **MongoDB Atlas** (`inkshield.jobs`) containing job_id, timestamp, epsilon, steps, and both models' predictions. The `GET /jobs` endpoint returns recent job history. MongoDB errors are fail-silent and never crash the API.
 
 ---
 
@@ -125,10 +137,10 @@ IBM Bob (the AI software engineering assistant) was used throughout every phase 
 ## 6. Known Tradeoffs
 
 **CPU inference on EC2 is slow.**
-PyTorch PGD runs on CPU unless a GPU instance is used. At `steps=8`, a single 512×512 image takes approximately 3–8 seconds. Reducing `steps` (e.g., to 4) halves inference time but weakens the perturbation. A GPU-enabled EC2 instance (e.g., `g4dn.xlarge`) would reduce this to under 1 second, but significantly increases hosting cost.
+Both PyTorch and TensorFlow models run on CPU unless a GPU instance is used. The ensemble attack runs two sub-steps per PGD iteration (one per model); at `steps=4`, a single 224×224 image takes approximately 5–15 seconds on CPU. A GPU-enabled EC2 instance (e.g., `g4dn.xlarge`) would reduce this significantly, but increases hosting cost.
 
-**Single-model proxy (ResNet-50 only).**
-The perturbation is crafted adversarially against ResNet-50 specifically. A scraper using a substantially different architecture (e.g., a Vision Transformer trained on a different dataset) may not be fully fooled — the attack may transfer partially or not at all. Ensemble attacks (crafting perturbations against multiple models simultaneously) would produce more architecture-agnostic protection, at the cost of longer inference time.
+**Two-model proxy (ResNet-50 + MobileNetV2).**
+The perturbation is crafted against these two architectures. A scraper using a Vision Transformer or CLIP-based model may not be fully fooled. Extending the ensemble to include ViT-B/16 and CLIP ViT-L/14 is the stated next step.
 
 **Presigned URLs chosen over public-read S3.**
 Images are stored in a private S3 bucket and served via 1-hour presigned URLs. This is the correct security posture — originals and protected images are never publicly accessible. The tradeoff is that links expire; a user who saves the URL and returns after an hour will get a 403. Downloading the protected image immediately (rather than bookmarking the URL) is the intended workflow.
@@ -139,11 +151,11 @@ Images are stored in a private S3 bucket and served via 1-hour presigned URLs. T
 
 | Priority | Feature |
 |----------|---------|
-| High | **Ensemble attack** — craft perturbations simultaneously against ResNet-50 + ViT-B/16 + CLIP ViT-L/14 for stronger cross-architecture transferability |
+| High | **Extended ensemble** — add ViT-B/16 and CLIP ViT-L/14 to the ensemble for stronger cross-architecture transferability |
 | High | **Grad-CAM before/after visualisation** — show a saliency heatmap of which regions the model attends to before and after perturbation |
 | Medium | **Batch processing** — accept a ZIP of images and return a ZIP of protected images; progress via Server-Sent Events |
 | Medium | **FGSM comparison mode** — run both FGSM (single-step) and PGD side-by-side so users can see the strength difference visually |
-| Low | **PostgreSQL job history** — persist job IDs, timestamps, epsilon, and prediction deltas so users can review past protection jobs |
+| Low | **Job history UI** — surface MongoDB job history in the frontend so users can review past protection runs |
 
 ---
 
@@ -151,10 +163,13 @@ Images are stored in a private S3 bucket and served via 1-hour presigned URLs. T
 
 | Layer | Technology |
 |-------|-----------|
-| ML core | Python 3.11 + PyTorch 2.x + torchvision (ResNet-50) |
+| ML core (PyTorch) | Python 3.11 + PyTorch 2.x + torchvision (ResNet-50) |
+| ML core (TensorFlow) | TensorFlow 2.x + Keras (MobileNetV2) |
+| Attack | Ensemble PGD — alternating ResNet-50 and MobileNetV2 gradient steps |
 | API | FastAPI + Uvicorn |
 | Image storage | AWS S3 (private bucket, presigned URLs) |
-| Frontend | React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui |
+| Job logging | MongoDB Atlas M0 (free tier), pymongo + dnspython |
+| Frontend | React 19 + TanStack Start + TypeScript + Tailwind v4 |
 | Frontend hosting | Vercel |
 | Backend hosting | AWS EC2 (Ubuntu, systemd-managed) |
 | AWS auth | EC2 IAM instance role (no hardcoded credentials) |
@@ -181,9 +196,13 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 
-# For local dev without S3, set dummy values:
+# S3 is optional -- omit S3_BUCKET to use base64 data URL fallback
 $env:S3_BUCKET = "my-image-protect-bucket"   # PowerShell
 $env:CORS_ORIGIN = "http://localhost:5173"
+
+# MongoDB is optional -- omit to skip job logging
+# Local:  $env:MONGODB_URI = "mongodb://localhost:27017"
+# Atlas:  $env:MONGODB_URI = "mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true"
 
 uvicorn main:app --reload --port 8000
 ```
@@ -232,6 +251,7 @@ Open [http://localhost:5173](http://localhost:5173).
    ```
    S3_BUCKET=my-image-protect-bucket
    CORS_ORIGIN=https://your-app.vercel.app
+   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true
    ```
 6. **Install the systemd service**:
    ```bash

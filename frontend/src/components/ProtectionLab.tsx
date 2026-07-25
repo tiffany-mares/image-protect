@@ -6,13 +6,18 @@ type Prediction = {
   confidence: number;
 };
 
+type ModelPredictions = {
+  original: Prediction;
+  protected: Prediction;
+};
+
 type ApiResult = {
   original_url: string;
   protected_url: string;
   job_id: string;
   predictions: {
-    original: Prediction;
-    protected: Prediction;
+    resnet50: ModelPredictions;
+    mobilenet: ModelPredictions;
   };
 };
 
@@ -104,10 +109,10 @@ export function ProtectionLab() {
               <span className="italic text-lime">Then break its vision.</span>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
-              Drop in an image. Apply Inkshield, the real PyTorch PGD attack
-              runs server-side against ResNet-50. Before and after predictions
-              show exactly how the model is fooled. Download the protected file
-              from S3.
+              Drop in an image. Apply Inkshield, the real ensemble PGD attack
+              runs server-side against ResNet-50 and MobileNetV2. Before and
+              after predictions from both models show exactly how each is
+              fooled. Download the protected file from S3.
             </p>
           </div>
         </div>
@@ -195,7 +200,8 @@ export function ProtectionLab() {
             imgSrc={previewUrl}
             hasImage={hasImage}
             onUploadClick={() => fileRef.current?.click()}
-            prediction={result?.predictions.original ?? null}
+            predictions={result ? result.predictions : null}
+            which="original"
             predictionLabel="model reads"
           />
           <LabPane
@@ -204,7 +210,8 @@ export function ProtectionLab() {
             imgSrc={result?.protected_url ?? null}
             hasImage={hasImage}
             onUploadClick={() => fileRef.current?.click()}
-            prediction={result?.predictions.protected ?? null}
+            predictions={result ? result.predictions : null}
+            which="protected"
             predictionLabel="model now sees"
             accentBorder
             loading={loading}
@@ -212,10 +219,10 @@ export function ProtectionLab() {
         </div>
 
         <p className="mt-8 text-xs text-muted-foreground font-mono max-w-2xl">
-          note: protection runs a real 8-step PGD attack on ResNet-50 server-side
-          (~5–10s on CPU). images are stored privately on S3 and returned as
-          time-limited presigned URLs. stronger ε = stronger disruption at the
-          cost of slight visible grain.
+          note: protection runs a real 4-step ensemble PGD attack against
+          ResNet-50 and MobileNetV2 server-side (~5–15s on CPU). images are
+          stored privately on S3 and returned as time-limited presigned URLs.
+          stronger ε = stronger disruption at the cost of slight visible grain.
         </p>
       </div>
     </section>
@@ -228,7 +235,8 @@ function LabPane({
   imgSrc,
   hasImage,
   onUploadClick,
-  prediction,
+  predictions,
+  which,
   predictionLabel,
   accentBorder,
   loading,
@@ -238,11 +246,15 @@ function LabPane({
   imgSrc: string | null;
   hasImage: boolean;
   onUploadClick: () => void;
-  prediction: Prediction | null;
+  predictions: ApiResult["predictions"] | null;
+  which: "original" | "protected";
   predictionLabel: string;
   accentBorder?: boolean;
   loading?: boolean;
 }) {
+  const resnet = predictions?.resnet50[which] ?? null;
+  const mobile = predictions?.mobilenet[which] ?? null;
+
   return (
     <div className={`border ${accentBorder ? "border-lime" : "border-border"} bg-background/40`}>
       <div className="p-4 border-b border-border flex items-center justify-between">
@@ -274,16 +286,33 @@ function LabPane({
         )}
       </div>
       <div className="p-4 space-y-3">
-        {prediction ? (
-          <div className="space-y-2 font-mono text-xs">
+        {resnet && mobile ? (
+          <div className="space-y-4 font-mono text-xs">
             <div className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground mb-2">
               {predictionLabel}
             </div>
-            <ScanRow k="class" v={`${prediction.label} (${prediction.index})`} />
-            <ScanRow
-              k="confidence"
-              v={`${(prediction.confidence * 100).toFixed(1)}%`}
-            />
+
+            {/* ResNet-50 predictions */}
+            <div>
+              <div className="font-mono text-[0.65rem] uppercase tracking-widest text-lime mb-1">
+                ResNet-50
+              </div>
+              <div className="space-y-2">
+                <ScanRow k="class" v={`${resnet.label} (${resnet.index})`} />
+                <ScanRow k="confidence" v={`${(resnet.confidence * 100).toFixed(1)}%`} />
+              </div>
+            </div>
+
+            {/* MobileNetV2 predictions */}
+            <div>
+              <div className="font-mono text-[0.65rem] uppercase tracking-widest text-amber mb-1">
+                MobileNetV2
+              </div>
+              <div className="space-y-2">
+                <ScanRow k="class" v={`${mobile.label} (${mobile.index})`} />
+                <ScanRow k="confidence" v={`${(mobile.confidence * 100).toFixed(1)}%`} />
+              </div>
+            </div>
           </div>
         ) : (
           <div className="font-mono text-xs text-muted-foreground uppercase tracking-widest">

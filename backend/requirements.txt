@@ -1,7 +1,10 @@
-﻿fastapi
+fastapi
 uvicorn[standard]
 torch
 torchvision
 pillow
 boto3
 python-multipart
+tensorflow
+pymongo
+dnspython

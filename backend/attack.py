@@ -1,10 +1,9 @@
-﻿"""PGD adversarial attack against ResNet-50 (ImageNet).
+"""PGD adversarial attack against ResNet-50 (ImageNet).
+Ensemble variant also attacks TF MobileNetV2 simultaneously.
 
 Usage:
     python attack.py <path-to-image>
-
-Outputs before/after prediction dicts to stdout and writes test_protected.png
-to the same directory as this script.
+    python attack.py <path-to-image> --ensemble
 """
 
 import sys
@@ -134,16 +133,118 @@ def pgd_attack(
     return protected_image, predictions
 
 
+def ensemble_pgd_attack(
+    image: Image.Image,
+    eps: float = 0.02,
+    steps: int = 4,
+) -> tuple:
+    """PGD attack that alternates gradient steps between ResNet-50 and MobileNetV2.
+
+    On each iteration:
+        1. Compute ResNet-50 cross-entropy gradient and apply a sign step.
+        2. Convert the intermediate adversarial image to a PIL image, run
+           tf.GradientTape on MobileNetV2, convert the numpy gradient back to
+           a torch tensor, and apply a second sign step.
+        3. Clip to epsilon-ball and clamp to [0, 1].
+
+    Args:
+        image:  PIL Image.
+        eps:    Maximum L-inf perturbation in [0, 1] pixel space.
+        steps:  Number of PGD iterations (each iteration does two sub-steps).
+
+    Returns:
+        (protected_image, predictions) where predictions is:
+        {
+            "resnet50":  {"original": predict_dict, "protected": predict_dict},
+            "mobilenet": {"original": predict_dict, "protected": predict_dict},
+        }
+    """
+    import numpy as np
+    import tensorflow as tf
+    from tf_model import tf_predict, _model as tf_mobilenet, _preprocess as tf_preprocess
+
+    alpha = eps / steps * 2.5
+
+    x_orig = preprocess(image.convert("RGB")).to(_DEVICE)  # (3, 224, 224)
+
+    # Record original predictions from both models
+    orig_pil = T.ToPILImage()(x_orig.cpu())
+    resnet_orig = predict(x_orig)
+    mobile_orig = tf_predict(orig_pil)
+
+    x_adv = x_orig.clone().detach()
+
+    for _ in range(steps):
+        # --- Step A: ResNet-50 gradient ---
+        x_adv.requires_grad_(True)
+        logits = model(_normalize(x_adv.unsqueeze(0)))
+        loss = torch.nn.functional.cross_entropy(
+            logits,
+            torch.tensor([resnet_orig["index"]], device=_DEVICE),
+        )
+        loss.backward()
+
+        with torch.no_grad():
+            x_adv = x_adv + alpha * x_adv.grad.sign()
+            x_adv = torch.max(torch.min(x_adv, x_orig + eps), x_orig - eps)
+            x_adv = x_adv.clamp(0.0, 1.0)
+
+        # --- Step B: MobileNetV2 gradient via tf.GradientTape ---
+        # Convert current x_adv ([0,1] CHW) to PIL, then to TF input ([-1,1] NHWC)
+        adv_pil = T.ToPILImage()(x_adv.cpu())
+        tf_input = tf.constant(tf_preprocess(adv_pil))  # (1, 224, 224, 3) float32
+
+        with tf.GradientTape() as tape:
+            tape.watch(tf_input)
+            tf_preds = tf_mobilenet(tf_input, training=False)
+            tf_loss = tf.keras.losses.sparse_categorical_crossentropy(
+                [mobile_orig["index"]], tf_preds
+            )
+
+        tf_grad = tape.gradient(tf_loss, tf_input)  # (1, 224, 224, 3)
+        if tf_grad is not None:
+            # Convert TF gradient (NHWC, [-1,1] scale) to torch CHW [0,1] sign
+            grad_np = tf_grad.numpy()[0]               # (224, 224, 3)
+            # grad_np is in the preprocess_input space; we only need the sign
+            grad_np_chw = np.transpose(grad_np, (2, 0, 1))  # (3, 224, 224)
+            grad_torch = torch.from_numpy(grad_np_chw).to(_DEVICE)
+
+            with torch.no_grad():
+                x_adv = x_adv + alpha * grad_torch.sign()
+                x_adv = torch.max(torch.min(x_adv, x_orig + eps), x_orig - eps)
+                x_adv = x_adv.clamp(0.0, 1.0)
+
+    # Record protected predictions from both models
+    prot_pil = T.ToPILImage()(x_adv.cpu())
+    resnet_prot = predict(x_adv)
+    mobile_prot = tf_predict(prot_pil)
+
+    predictions = {
+        "resnet50": {
+            "original":  resnet_orig,
+            "protected": resnet_prot,
+        },
+        "mobilenet": {
+            "original":  mobile_orig,
+            "protected": mobile_prot,
+        },
+    }
+    return prot_pil, predictions
+
+
 # ---------------------------------------------------------------------------
 # __main__ -- smoke-test from the command line
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python attack.py <path-to-image>")
+    use_ensemble = "--ensemble" in sys.argv
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+
+    if not args:
+        print("Usage: python attack.py <path-to-image> [--ensemble]")
         sys.exit(1)
 
-    img_path = Path(sys.argv[1])
+    img_path = Path(args[0])
     if not img_path.exists():
         print(f"Error: file not found: {img_path}")
         sys.exit(1)
@@ -151,14 +252,24 @@ if __name__ == "__main__":
     print(f"Loading image: {img_path}")
     source_image = Image.open(img_path)
 
-    print("Running PGD attack (eps=0.02, steps=8) ...")
-    protected_image, predictions = pgd_attack(source_image, eps=0.02, steps=8)
-
-    print("\n--- Original prediction ---")
-    print(predictions["original"])
-
-    print("\n--- Protected prediction ---")
-    print(predictions["protected"])
+    if use_ensemble:
+        print("Running ensemble PGD attack (eps=0.02, steps=4) ...")
+        protected_image, predictions = ensemble_pgd_attack(source_image, eps=0.02, steps=4)
+        print("\n--- ResNet-50 original ---")
+        print(predictions["resnet50"]["original"])
+        print("\n--- ResNet-50 protected ---")
+        print(predictions["resnet50"]["protected"])
+        print("\n--- MobileNetV2 original ---")
+        print(predictions["mobilenet"]["original"])
+        print("\n--- MobileNetV2 protected ---")
+        print(predictions["mobilenet"]["protected"])
+    else:
+        print("Running PGD attack (eps=0.02, steps=8) ...")
+        protected_image, predictions = pgd_attack(source_image, eps=0.02, steps=8)
+        print("\n--- Original prediction ---")
+        print(predictions["original"])
+        print("\n--- Protected prediction ---")
+        print(predictions["protected"])
 
     out_path = Path(__file__).parent / "test_protected.png"
     protected_image.save(out_path)
