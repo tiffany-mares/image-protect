@@ -37,7 +37,7 @@ frontend/
 
 ## Sub-Task 1 - TensorFlow MobileNetV2 module (tf_model.py)
 
-**Status:** [ ] pending
+**Status:** [x] complete
 
 ### Intent
 Create a new module that loads MobileNetV2 once at import time and exposes
@@ -75,7 +75,7 @@ This keeps TF concerns fully isolated from the PyTorch attack code.
 
 ## Sub-Task 2 - Ensemble PGD attack (attack.py)
 
-**Status:** [ ] pending
+**Status:** [x] complete
 
 ### Intent
 Add ensemble_pgd_attack() to attack.py that alternates gradient steps
@@ -151,7 +151,7 @@ functions. DB errors must never crash the API -- log_job fails silently.
 
 ## Sub-Task 4 - Wire into main.py + GET /jobs endpoint
 
-**Status:** [ ] pending
+**Status:** [x] complete
 
 ### Intent
 Update main.py to use ensemble_pgd_attack, log every job to MongoDB, and

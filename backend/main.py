@@ -2,21 +2,26 @@
 
 Endpoints:
     GET  /health   -- liveness probe
-    POST /protect  -- run PGD attack, return presigned S3 URLs (if S3_BUCKET
-                      is set) or base64 data URLs (fallback for local/demo use)
+    POST /protect  -- run ensemble PGD attack, return presigned S3 URLs (if
+                      S3_BUCKET is set) or base64 data URLs (fallback for
+                      local/demo use)
+    GET  /jobs     -- recent job history from MongoDB (empty list if Mongo
+                      unavailable)
 """
 
 import base64
 import io
 import os
 import uuid
+from datetime import datetime, timezone
 
 import boto3
 from fastapi import FastAPI, File, Form, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
-from attack import pgd_attack
+from attack import ensemble_pgd_attack
+from db import get_recent_jobs, log_job
 
 # ---------------------------------------------------------------------------
 # Config from environment
@@ -81,13 +86,16 @@ async def protect(
     raw_bytes = await file.read()
     image = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
 
-    # Run PGD attack (4 steps: faster with negligible strength loss)
-    protected_image, predictions = pgd_attack(image, eps=epsilon, steps=4)
+    # Run ensemble PGD attack (each step: one ResNet-50 + one MobileNetV2 sub-step)
+    protected_image, predictions = ensemble_pgd_attack(image, eps=epsilon, steps=4)
 
     job_id = str(uuid.uuid4())
 
     original_png  = _to_png_bytes(image)
     protected_png = _to_png_bytes(protected_image)
+
+    original_key  = None
+    protected_key = None
 
     if S3_BUCKET:
         # --- S3 path: upload and return presigned URLs ---
@@ -105,9 +113,26 @@ async def protect(
         original_url  = _to_data_url(original_png)
         protected_url = _to_data_url(protected_png)
 
+    # Fail-silent job log (db.log_job never raises)
+    log_job({
+        "job_id":            job_id,
+        "timestamp":         datetime.now(timezone.utc).isoformat(),
+        "epsilon":           epsilon,
+        "steps":             4,
+        "predictions":       predictions,
+        "original_s3_key":   original_key,
+        "protected_s3_key":  protected_key,
+    })
+
     return {
         "protected_url": protected_url,
         "original_url":  original_url,
         "job_id":        job_id,
         "predictions":   predictions,
     }
+
+
+@app.get("/jobs")
+def jobs(limit: int = 20):
+    """Return recent protection jobs (empty list if MongoDB is unavailable)."""
+    return get_recent_jobs(limit)

@@ -197,8 +197,9 @@ def ensemble_pgd_attack(
         with tf.GradientTape() as tape:
             tape.watch(tf_input)
             tf_preds = tf_mobilenet(tf_input, training=False)
+            # Keras 3 requires y_true to be a tensor (a plain list has no .shape)
             tf_loss = tf.keras.losses.sparse_categorical_crossentropy(
-                [mobile_orig["index"]], tf_preds
+                tf.constant([mobile_orig["index"]], dtype=tf.int32), tf_preds
             )
 
         tf_grad = tape.gradient(tf_loss, tf_input)  # (1, 224, 224, 3)
