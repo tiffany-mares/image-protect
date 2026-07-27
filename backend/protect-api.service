@@ -1,12 +1,12 @@
 [Unit]
-Description=Adversarial protection API
+Description=InkShield adversarial protection API
 After=network.target
 
 [Service]
 User=ubuntu
 WorkingDirectory=/home/ubuntu/app/backend
 EnvironmentFile=/home/ubuntu/app/.env
-ExecStart=/usr/bin/python3 -m uvicorn main:app --host 0.0.0.0 --port 8000
+ExecStart=/home/ubuntu/app/backend/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000
 Restart=always
 
 [Install]

@@ -12,4 +12,6 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // Deploy target: plain Node server on EC2 (overrides the Lovable default of cloudflare-module)
+  nitro: { preset: "node-server" },
 });

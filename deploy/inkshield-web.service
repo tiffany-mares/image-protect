@@ -1,0 +1,13 @@
+[Unit]
+Description=InkShield frontend (TanStack Start nitro node-server)
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/app/frontend
+Environment=PORT=3000
+ExecStart=/usr/bin/node /home/ubuntu/app/frontend/.output/server/index.mjs
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
