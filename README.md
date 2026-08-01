@@ -129,11 +129,11 @@ IBM Bob (the AI software engineering assistant) was used throughout every phase 
 
 - **Project planning:** Bob produced the full multi-sub-task implementation plan (`image-protect-plan.md`), decomposing the project into six independently verifiable sub-tasks with explicit expected outcomes and validation steps for each.
 - **Architecture design:** Bob designed the full system architecture — the choice of PGD over FGSM, ResNet-50 as proxy, FastAPI over Flask for async readiness, presigned URLs over public-read S3, and the Vercel + EC2 hosting split.
-- **ML core generation:** Bob wrote `backend/attack.py` (PGD attack loop, gradient computation, pixel clamping, per-step alpha calculation) and `backend/labels.py` (ImageNet-1K class name lookup).
-- **FastAPI backend generation:** Bob wrote `backend/main.py` — CORS middleware, multipart upload handling, UUID job IDs, S3 upload via boto3, presigned URL generation, and the health check endpoint.
+- **ML core generation:** Bob wrote `services/ml-service/attack.py` (PGD attack loop, gradient computation, pixel clamping, per-step alpha calculation) and `services/ml-service/labels.py` (ImageNet-1K class name lookup).
+- **FastAPI backend generation:** Bob wrote `services/ml-service/main.py` — CORS middleware, multipart upload handling, UUID job IDs, S3 upload via boto3, presigned URL generation, and the health check endpoint.
 - **React frontend generation:** Bob scaffolded and wrote the full `frontend/` directory — `ProtectTool.tsx` with epsilon slider, file upload zone, loading state, before/after prediction cards using shadcn/ui, and Tailwind styling.
-- **S3 provisioning script:** Bob wrote `backend/s3_setup.py` — idempotent bucket creation, block-all-public-access, and least-privilege bucket policy scoped to the EC2 IAM role ARN.
-- **Deployment config:** Bob wrote the systemd units (`backend/protect-api.service`, `deploy/inkshield-web.service`) and the Caddy reverse-proxy config (`deploy/Caddyfile`).
+- **S3 provisioning script:** Bob wrote `services/ml-service/s3_setup.py` — idempotent bucket creation, block-all-public-access, and least-privilege bucket policy scoped to the EC2 IAM role ARN.
+- **Deployment config:** Bob wrote the systemd units (`services/ml-service/protect-api.service`, `deploy/inkshield-web.service`) and the Caddy reverse-proxy config (`deploy/Caddyfile`).
 - **README structure:** Bob authored this README, ensuring all IBM AI Builders Challenge submission checklist items are covered.
 
 ---
@@ -191,7 +191,7 @@ Images are stored in a private S3 bucket and served via 1-hour presigned URLs. T
 ### Backend
 
 ```bash
-cd backend
+cd services/ml-service
 python -m venv .venv
 # Windows
 .venv\Scripts\activate
@@ -241,7 +241,7 @@ Open [http://localhost:8080](http://localhost:8080).
 Everything runs on a single EC2 instance behind Caddy, which terminates TLS for a
 DuckDNS domain and routes `/api/*` to the FastAPI backend (port 8000) and everything
 else to the frontend's node server (port 3000). Config lives in `deploy/Caddyfile`,
-`deploy/inkshield-web.service`, and `backend/protect-api.service`.
+`deploy/inkshield-web.service`, and `services/ml-service/protect-api.service`.
 
 1. **Provision an EC2 instance** (Ubuntu 22.04+; `t3.medium` or larger for acceptable
    CPU inference speed — a persistent spot request keeps costs around $15/mo).
@@ -258,7 +258,7 @@ else to the frontend's node server (port 3000). Config lives in `deploy/Caddyfil
 4. **Clone the repo and build both apps** on the instance:
    ```bash
    git clone <repo-url> /home/ubuntu/app
-   cd /home/ubuntu/app/backend
+   cd /home/ubuntu/app/services/ml-service
    python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
    cd ../frontend
    npm install && npm run build        # produces .output/server/index.mjs (nitro node-server)
@@ -274,7 +274,7 @@ else to the frontend's node server (port 3000). Config lives in `deploy/Caddyfil
    ```bash
    sudo apt install caddy
    sudo cp /home/ubuntu/app/deploy/Caddyfile /etc/caddy/Caddyfile   # edit the domain first
-   sudo cp /home/ubuntu/app/backend/protect-api.service /etc/systemd/system/
+   sudo cp /home/ubuntu/app/services/ml-service/protect-api.service /etc/systemd/system/
    sudo cp /home/ubuntu/app/deploy/inkshield-web.service /etc/systemd/system/
    sudo systemctl daemon-reload
    sudo systemctl enable --now protect-api inkshield-web caddy
