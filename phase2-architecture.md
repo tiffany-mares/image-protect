@@ -254,11 +254,11 @@ Ordered so each step produces something testable before moving to the next. Esti
 **Test:** deploy a placeholder "hello world" container to k3s, confirm it's reachable via Traefik Ingress from your laptop, and confirm a shell inside the cluster can reach both Postgres and MongoDB Atlas.
 
 ### Step 2 — `users` table + Spring Boot auth service (~1 day)
-- [ ] Create `users` table (section 2 SQL)
-- [ ] Spring Boot project: `spring-boot-starter-security`, `spring-boot-starter-data-jpa`, Postgres driver, a JWT library (e.g. `jjwt`)
-- [ ] Implement `POST /auth/signup`, `GET /auth/verify`, `POST /auth/login` exactly per the contract in section 3
-- [ ] SES integration for the verification email
-- [ ] JWT signing key generated, stored as a k3s Secret, referenced in Spring Boot's config
+- [x] Create `users` table (section 2 SQL) — live in Neon
+- [x] Spring Boot project (landed on Boot 4.1 — start.spring.io no longer serves 3.x): security, data-jpa, Postgres driver, jjwt 0.13
+- [x] `POST /auth/signup`, `GET /auth/verify`, `POST /auth/login` per §3 contract (HS256 pinned explicitly; 14 tests incl. integration vs real Postgres)
+- [x] SES integration for the verification email (note: SES-from-gmail fails Gmail SPF alignment → lands in spam; production fix is a domain identity)
+- [x] JWT signing key generated, stored as k3s Secret `jwt-signing-key` (key `JWT_SECRET`), read by Spring config `app.jwt-secret`
 
 **Test:** via curl/Postman — signup, receive email, hit verify link, login, confirm a decodable JWT comes back with the right `sub`/`email` claims.
 

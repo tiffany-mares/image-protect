@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8080}
+  ses-from: ${SES_FROM:tiffany.m.mares@gmail.com}
+  jwt-secret: ${JWT_SECRET}
