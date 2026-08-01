@@ -263,10 +263,10 @@ Ordered so each step produces something testable before moving to the next. Esti
 **Test:** via curl/Postman — signup, receive email, hit verify link, login, confirm a decodable JWT comes back with the right `sub`/`email` claims.
 
 ### Step 3 — `images`/`likes` tables + ML service auth awareness (~half day)
-- [ ] Create `images` and `likes` tables (section 2 SQL)
-- [ ] FastAPI `/protect`: accept optional `Authorization` header, verify JWT locally (same shared secret as Spring Boot, no network call)
-- [ ] On valid token: after S3 upload, write the MongoDB job doc with `user_id` populated, then insert the corresponding `images` row in Postgres, return `image_id` in the response
-- [ ] On missing/invalid token: unchanged Phase 1 behavior — protect and return, nothing persisted
+- [x] Create `images` and `likes` tables (section 2 SQL) — live in Neon
+- [x] FastAPI `/protect`: optional `Authorization` header, JWT verified locally in `auth.py` (PyJWT, HS256 pinned, key = base64-decoded shared secret exactly as Spring derives it)
+- [x] On valid token: Mongo job doc gets `user_id`, `images` row inserted (`pgdb.py`, stores durable S3 key not presigned URL), `image_id` returned — verified live with cross-store link intact
+- [x] On missing/invalid token: unchanged Phase 1 behavior (verified live: anonymous and garbage-token calls persisted nothing to Postgres)
 
 **Test:** protect an image logged in → confirm one Mongo doc and one Postgres row, linked by `mongo_job_id`. Protect one anonymously → confirm neither table gets a new row.
 

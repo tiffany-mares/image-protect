@@ -16,12 +16,14 @@ import uuid
 from datetime import datetime, timezone
 
 import boto3
-from fastapi import FastAPI, File, Form, UploadFile
+from fastapi import FastAPI, File, Form, Header, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image
 
 from attack import ensemble_pgd_attack
+from auth import get_user_id
 from db import get_recent_jobs, log_job
+from pgdb import insert_image
 
 # ---------------------------------------------------------------------------
 # Config from environment
@@ -81,7 +83,12 @@ def health():
 async def protect(
     file: UploadFile = File(...),
     epsilon: float = Form(0.02),
+    authorization: str | None = Header(None),
 ):
+    # Optional auth: a valid Bearer JWT identifies the user for persistence;
+    # missing or invalid tokens fall back to anonymous Phase 1 behavior.
+    user_id = get_user_id(authorization)
+
     # Read and decode uploaded image
     raw_bytes = await file.read()
     image = Image.open(io.BytesIO(raw_bytes)).convert("RGB")
@@ -113,9 +120,11 @@ async def protect(
         original_url  = _to_data_url(original_png)
         protected_url = _to_data_url(protected_png)
 
-    # Fail-silent job log (db.log_job never raises)
-    log_job({
+    # Fail-silent job log (db.log_job never raises); user_id is None for
+    # anonymous lab use — Phase 1 behavior preserved.
+    mongo_job_id = log_job({
         "job_id":            job_id,
+        "user_id":           user_id,
         "timestamp":         datetime.now(timezone.utc).isoformat(),
         "epsilon":           epsilon,
         "steps":             4,
@@ -124,12 +133,21 @@ async def protect(
         "protected_s3_key":  protected_key,
     })
 
-    return {
+    response = {
         "protected_url": protected_url,
         "original_url":  original_url,
         "job_id":        job_id,
         "predictions":   predictions,
     }
+
+    if user_id:
+        # images.s3_url stores the durable S3 key (presigned at read time by
+        # the gateway later) — never the 1-hour presigned URL.
+        image_id = insert_image(user_id, mongo_job_id or job_id, protected_key or "")
+        if image_id:
+            response["image_id"] = image_id
+
+    return response
 
 
 @app.get("/jobs")

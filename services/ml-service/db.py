@@ -1,7 +1,8 @@
 """MongoDB job logging module.
 
 Provides:
-    log_job(doc)          -- insert a job document; fails silently on error
+    log_job(doc)          -- insert a job document, return its _id as str;
+                             fails silently (returns None) on error
     get_recent_jobs(limit) -- return recent jobs sorted by timestamp desc
 
 Environment:
@@ -35,15 +36,20 @@ except Exception as exc:  # pragma: no cover
 # Public API
 # ---------------------------------------------------------------------------
 
-def log_job(doc: dict) -> None:
-    """Insert *doc* into inkshield.jobs. Fails silently on any error."""
+def log_job(doc: dict) -> str | None:
+    """Insert *doc* into inkshield.jobs; return the inserted _id as str.
+
+    Fails silently (returns None) on any error.
+    """
     if _db is None:
         logger.warning("MongoDB unavailable — skipping log_job")
-        return
+        return None
     try:
-        _db["jobs"].insert_one(doc)
+        result = _db["jobs"].insert_one(doc)
+        return str(result.inserted_id)
     except Exception as exc:
         logger.warning("log_job failed: %s", exc)
+        return None
 
 
 def get_recent_jobs(limit: int = 20) -> list:

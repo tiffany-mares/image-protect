@@ -8,3 +8,5 @@ python-multipart
 tensorflow
 pymongo
 dnspython
+pyjwt
+psycopg[binary]
