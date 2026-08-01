@@ -1,0 +1,7 @@
+.venv
+__pycache__
+test_main.py
+test_auth.py
+test_pgdb.py
+test_protected.png
+protect-api.service

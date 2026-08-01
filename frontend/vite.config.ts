@@ -12,6 +12,7 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  // Deploy target: plain Node server on EC2 (overrides the Lovable default of cloudflare-module)
-  nitro: { preset: "node-server" },
+  // Deploy target: Vercel emits its serverless Build Output when VERCEL=1 is set
+  // in the build env; any other build (local, EC2) falls back to a plain Node server.
+  nitro: { preset: process.env.VERCEL ? "vercel" : "node-server" },
 });
