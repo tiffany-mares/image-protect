@@ -271,10 +271,10 @@ Ordered so each step produces something testable before moving to the next. Esti
 **Test:** protect an image logged in → confirm one Mongo doc and one Postgres row, linked by `mongo_job_id`. Protect one anonymously → confirm neither table gets a new row.
 
 ### Step 4 — Go gateway (~1 day)
-- [ ] Go service scaffolded with a Postgres driver and JWT middleware (verifies the same shared secret)
-- [ ] Reverse proxy routes: `/auth/*` → auth-service, `/protect` → ml-service
-- [ ] Implement `GET /dashboard`, `GET /dashboard/liked`, `PATCH /images/:id/favorite`, `PATCH /images/:id/publish`, `GET /gallery`, `POST /images/:id/like`, `DELETE /images/:id/like` per section 3 — enforce ownership checks (`user_id` from JWT must match `images.user_id`) on the PATCH routes
-- [ ] `popular` sort implemented as a `LEFT JOIN` against `likes` with `GROUP BY` + `COUNT`, ordered descending
+- [x] Go service scaffolded (`services/gateway/`, stdlib net/http + pgx + golang-jwt; 10 tests incl. store tests against real Postgres) with JWT middleware verifying the same shared secret (HS256 pinned)
+- [x] Reverse proxy routes: `/auth/*` → auth-service, `/protect` → ml-service (verified live: signup/login/verify-click and protect all through the gateway's single base URL)
+- [x] All seven §3 routes implemented; ownership enforced on PATCH (404 missing / 403 foreign / 401 anonymous, all verified live); gateway presigns image URLs at read time from the stored S3 key
+- [x] `popular` sort as `LEFT JOIN likes` + `GROUP BY` + `COUNT` descending (verified live: liked image first with correct count)
 
 **Test:** full curl/Postman walkthrough — signup two test users, protect+save an image as user A, publish it, like it as user B, confirm it shows in user B's Liked tab and in `/gallery?sort=popular`.
 
