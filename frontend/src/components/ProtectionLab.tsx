@@ -59,7 +59,7 @@ export function ProtectionLab() {
     setError(null);
     setResult(null);
 
-    // Start elapsed-seconds timer
+    // Start elapsed-seconds timer while the server runs PGD.
     timerRef.current = setInterval(() => {
       setElapsed((s) => s + 1);
     }, 1000);
@@ -89,9 +89,13 @@ export function ProtectionLab() {
 
   const download = useCallback(() => {
     if (!result) return;
+    // protected_url is a cross-origin S3 presigned URL. Try an anchor with the
+    // download attribute; if the browser ignores it cross-origin, it still
+    // navigates/opens the file.
     const a = document.createElement("a");
     a.href = result.protected_url;
     a.download = `inkshield-protected-${result.job_id}.png`;
+    a.rel = "noopener";
     a.click();
   }, [result]);
 
@@ -114,10 +118,11 @@ export function ProtectionLab() {
               <span className="italic text-lime">Then break its vision.</span>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
-              Drop in an image. Apply Inkshield, the real ensemble PGD attack
-              runs server-side against ResNet-50 and MobileNetV2. Before and
-              after predictions from both models show exactly how each is
-              fooled. Download the protected file from S3.
+              Drop in an image and apply Inkshield. Your file is uploaded and
+              protected server-side by a real ensemble PGD attack against
+              ResNet-50 and MobileNetV2. Before-and-after predictions from both
+              models show exactly how each is fooled, then download the
+              protected file.
             </p>
           </div>
         </div>
@@ -169,21 +174,28 @@ export function ProtectionLab() {
             />
             <button
               onClick={() => fileRef.current?.click()}
-              className="font-mono text-xs uppercase tracking-widest px-4 py-3 border border-lime text-lime hover:bg-lime hover:text-primary-foreground transition-colors"
+              className="font-mono text-xs uppercase tracking-widest px-4 py-3 border border-lime text-lime hover:bg-lime hover:text-primary-foreground transition-colors hover-lift"
             >
               {hasImage ? "Change image" : "↑ Upload artwork"}
             </button>
             <button
               onClick={runProtection}
               disabled={!hasImage || loading}
-              className="font-mono text-xs uppercase tracking-widest px-4 py-3 bg-lime text-primary-foreground hover:bg-amber transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="font-mono text-xs uppercase tracking-widest px-4 py-3 bg-lime text-primary-foreground hover:bg-amber transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2 hover-lift"
             >
-              {loading ? `Running PGD… ${elapsed}s` : "⚡ Protect with PGD"}
+              {loading ? (
+                <>
+                  <span className="inline-block w-2 h-2 bg-primary-foreground rounded-full animate-pulse" />
+                  Running PGD… {elapsed}s
+                </>
+              ) : (
+                "⚡ Protect with PGD"
+              )}
             </button>
             <button
               onClick={download}
               disabled={!result}
-              className="font-mono text-xs uppercase tracking-widest px-4 py-3 border border-border text-foreground hover:border-lime hover:text-lime transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="font-mono text-xs uppercase tracking-widest px-4 py-3 border border-border text-foreground hover:border-lime hover:text-lime transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover-lift"
             >
               ↓ Download protected
             </button>
@@ -191,14 +203,18 @@ export function ProtectionLab() {
 
           {/* Save-to-dashboard status */}
           {loggedIn && result?.image_id && (
-            <p className="mt-3 font-mono text-xs text-lime">
+            <p className="md:col-span-12 mt-1 font-mono text-xs text-lime">
               Saved to your dashboard ✓{" "}
-              <Link to="/dashboard" className="underline hover:text-amber">view</Link>
+              <Link to="/dashboard" className="underline hover:text-amber">
+                view
+              </Link>
             </p>
           )}
           {!loggedIn && result && (
-            <p className="mt-3 font-mono text-xs text-muted-foreground">
-              <Link to="/signin" className="text-lime hover:text-amber">Sign in</Link>{" "}
+            <p className="md:col-span-12 mt-1 font-mono text-xs text-muted-foreground">
+              <Link to="/auth" className="text-lime hover:text-amber">
+                Sign in
+              </Link>{" "}
               to save results to a dashboard.
             </p>
           )}
@@ -216,7 +232,7 @@ export function ProtectionLab() {
           <LabPane
             label="Original"
             accent="text-muted-foreground"
-            imgSrc={previewUrl}
+            imgSrc={result?.original_url ?? previewUrl}
             hasImage={hasImage}
             onUploadClick={() => fileRef.current?.click()}
             predictions={result ? result.predictions : null}
@@ -238,10 +254,11 @@ export function ProtectionLab() {
         </div>
 
         <p className="mt-8 text-xs text-muted-foreground font-mono max-w-2xl">
-          note: protection runs a real 4-step ensemble PGD attack against
-          ResNet-50 and MobileNetV2 server-side (~5–15s on CPU). images are
-          stored privately on S3 and returned as time-limited presigned URLs.
-          stronger ε = stronger disruption at the cost of slight visible grain.
+          note: your image is uploaded and protected server-side by a real
+          4-step ensemble PGD attack against ResNet-50 and MobileNetV2 (~5–15s
+          on CPU). files are stored privately on S3 and returned as time-limited
+          presigned URLs. stronger ε = stronger disruption at the cost of slight
+          visible grain.
         </p>
       </div>
     </section>
@@ -275,7 +292,9 @@ function LabPane({
   const mobile = predictions?.mobilenet[which] ?? null;
 
   return (
-    <div className={`border ${accentBorder ? "border-lime" : "border-border"} bg-background/40`}>
+    <div
+      className={`border ${accentBorder ? "border-lime" : "border-border"} bg-background/40`}
+    >
       <div className="p-4 border-b border-border flex items-center justify-between">
         <div className={`font-mono text-xs uppercase tracking-[0.3em] ${accent}`}>
           {label}
@@ -297,7 +316,7 @@ function LabPane({
         ) : (
           <button
             onClick={onUploadClick}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-lime transition-colors font-mono text-xs uppercase tracking-widest"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-lime transition-colors font-mono text-xs uppercase tracking-widest hover-lift"
           >
             <span className="text-3xl">+</span>
             <span>upload to preview</span>
@@ -306,32 +325,18 @@ function LabPane({
       </div>
       <div className="p-4 space-y-3">
         {resnet && mobile ? (
-          <div className="space-y-4 font-mono text-xs">
-            <div className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground mb-2">
+          <div className="space-y-2 font-mono text-xs">
+            <div className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground mb-1">
               {predictionLabel}
             </div>
-
-            {/* ResNet-50 predictions */}
-            <div>
-              <div className="font-mono text-[0.65rem] uppercase tracking-widest text-lime mb-1">
-                ResNet-50
-              </div>
-              <div className="space-y-2">
-                <ScanRow k="class" v={`${resnet.label} (${resnet.index})`} />
-                <ScanRow k="confidence" v={`${(resnet.confidence * 100).toFixed(1)}%`} />
-              </div>
-            </div>
-
-            {/* MobileNetV2 predictions */}
-            <div>
-              <div className="font-mono text-[0.65rem] uppercase tracking-widest text-amber mb-1">
-                MobileNetV2
-              </div>
-              <div className="space-y-2">
-                <ScanRow k="class" v={`${mobile.label} (${mobile.index})`} />
-                <ScanRow k="confidence" v={`${(mobile.confidence * 100).toFixed(1)}%`} />
-              </div>
-            </div>
+            <ScanRow
+              k="ResNet-50"
+              v={`${resnet.label} (${Math.round(resnet.confidence * 100)}%)`}
+            />
+            <ScanRow
+              k="MobileNetV2"
+              v={`${mobile.label} (${Math.round(mobile.confidence * 100)}%)`}
+            />
           </div>
         ) : (
           <div className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
