@@ -121,3 +121,93 @@
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+@keyframes eq-bar {
+  0%, 100% { height: 22%; }
+  50% { height: 100%; }
+}
+@keyframes flicker-in {
+  0%   { opacity: 0; }
+  20%  { opacity: 0.6; }
+  40%  { opacity: 0.2; }
+  60%  { opacity: 0.9; }
+  100% { opacity: 1; }
+}
+
+.hero-portrait {
+  transform: translateY(18%) scale(1.5);
+  transform-origin: center;
+}
+
+@utility plus-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  position: relative;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(color-mix(in oklab, var(--foreground) 22%, transparent) 1.2px, transparent 1.4px);
+    background-size: 48px 48px;
+    background-position: 24px 24px;
+    mask-image: radial-gradient(ellipse at center, black 45%, transparent 85%);
+  }
+}
+
+@utility eq-live {
+  display: inline-flex;
+  align-items: end;
+  gap: 2px;
+  height: 12px;
+  & > span {
+    display: block;
+    width: 2px;
+    background: var(--lime);
+    border-radius: 1px;
+    animation: eq-bar 900ms ease-in-out infinite;
+  }
+  & > span:nth-child(1) { animation-delay: 0ms; }
+  & > span:nth-child(2) { animation-delay: 120ms; }
+  & > span:nth-child(3) { animation-delay: 240ms; }
+  & > span:nth-child(4) { animation-delay: 360ms; }
+  & > span:nth-child(5) { animation-delay: 480ms; }
+}
+
+@utility hover-lift {
+  transition: transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), color 150ms ease, background-color 150ms ease, border-color 150ms ease, filter 200ms ease;
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow:
+      0 0 24px color-mix(in oklab, var(--lime) 50%, transparent),
+      0 10px 32px color-mix(in oklab, var(--lime) 28%, transparent);
+    filter: drop-shadow(0 0 6px color-mix(in oklab, var(--lime) 45%, transparent));
+  }
+  &:active:not(:disabled):not([aria-disabled="true"]) {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 0 14px color-mix(in oklab, var(--lime) 35%, transparent);
+  }
+}
+
+@layer base {
+  input[type="range"] {
+    transition: box-shadow 200ms ease, transform 200ms ease, filter 200ms ease;
+  }
+  @media (hover: hover) {
+    input[type="range"]:hover:not(:disabled) {
+      box-shadow: 0 0 0 5px color-mix(in oklab, var(--lime) 40%, transparent);
+      filter: drop-shadow(0 0 8px color-mix(in oklab, var(--lime) 50%, transparent));
+      border-radius: 999px;
+    }
+    select:hover:not(:disabled) {
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--lime) 55%, transparent);
+      filter: drop-shadow(0 0 8px color-mix(in oklab, var(--lime) 45%, transparent));
+      transform: translateY(-2px);
+    }
+    input:hover:not(:disabled):not([type="range"]):not([type="checkbox"]):not([type="radio"]),
+    textarea:hover:not(:disabled) {
+      box-shadow: 0 0 0 2px color-mix(in oklab, var(--lime) 45%, transparent);
+    }
+  }
+}

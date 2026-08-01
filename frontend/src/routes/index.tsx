@@ -1,13 +1,35 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Github, Linkedin } from "lucide-react";
 import { Header } from "@/components/Header";
+import { ProtectionLab } from "@/components/ProtectionLab";
+import { BootLoader } from "@/components/BootLoader";
+import { WordCycle } from "@/components/WordCycle";
+import { fetchGallery, type GalleryImage } from "@/lib/api";
 import gradcamImg from "@/assets/gradcam-viz.jpg";
 
 const heroImg = "/carmen-aguado.png";
-import { ProtectionLab } from "@/components/ProtectionLab";
 
 export const Route = createFileRoute("/")({
   component: Index,
 });
+
+function timeAgo(date: string | null): string {
+  if (!date) return "just now";
+  const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (Number.isNaN(seconds) || seconds < 0) return "just now";
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  const years = Math.floor(months / 12);
+  return `${years}y ago`;
+}
 
 const strengths = [
   { name: "Ultra-Subtle", eps: "0.005", quality: "Very High", visibility: "Virtually invisible" },
@@ -18,46 +40,53 @@ const strengths = [
 ];
 
 const privacy = [
-  "Protected by presigned S3 URLs",
-  "Images stored privately on AWS S3",
-  "ResNet-50 runs server-side on EC2",
-  "No third-party AI services",
+  "Uploaded over HTTPS, processed in isolation",
+  "Stored privately in an AWS S3 bucket",
+  "Ensemble PGD runs server-side, not in your browser",
+  "Downloaded via time-limited presigned URLs",
 ];
 
 const stack = {
-  Engine: ["PyTorch ResNet-50", "TF MobileNetV2", "Ensemble PGD attack"],
-  Backend: ["FastAPI on EC2", "AWS S3 storage", "MongoDB Atlas logging"],
+  Models: ["PyTorch ResNet-50", "TF MobileNetV2", "Ensemble PGD attack"],
+  Services: ["FastAPI ML service", "Go API gateway", "Spring Boot auth"],
+  Infra: ["PostgreSQL", "MongoDB", "AWS S3", "k3s cluster"],
   Frontend: ["React 19", "TanStack Start", "Tailwind v4"],
 };
-
 
 function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden">
+      <BootLoader />
+
       {/* NAV */}
       <Header />
 
       {/* HERO */}
       <section id="top" className="relative pt-16 min-h-screen">
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 overflow-hidden">
           <img
             src={heroImg}
             alt="Portrait of Carmen Aguado, Duchesse de Montmorency, by Franz Xaver Winterhalter, 1860"
-            className="w-full h-full object-cover object-[right_25%] opacity-70"
+            className="hero-portrait w-full h-full object-cover object-[right_25%] opacity-70"
           />
 
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/40" />
           <div className="absolute inset-0 scanlines opacity-40 pointer-events-none" />
+          <div className="absolute inset-0 noise pointer-events-none" />
         </div>
 
         <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-10 pt-20 pb-24 lg:pt-32 lg:pb-40 grid lg:grid-cols-12 gap-8 items-end min-h-[calc(100vh-4rem)]">
           <div className="lg:col-span-8">
-            <div className="font-mono text-xs uppercase tracking-[0.3em] text-lime mb-8 flex items-center gap-3">
+            <div className="font-mono text-xs uppercase tracking-[0.3em] text-lime mb-8 flex items-center gap-3 flex-wrap">
               <span className="w-8 h-px bg-lime" />
-              v0.1 · server-side · adversarial ML
+              <span>v0.1 · server-side · resists models that{" "}</span>
+              <WordCycle
+                words={["scrape", "train", "mimic", "clone"]}
+                className="text-amber"
+              />
             </div>
-            <h1 className="font-display font-light text-5xl sm:text-7xl lg:text-[8.5rem] leading-[0.9] tracking-tight text-foreground">
+            <h1 className="font-display font-light text-5xl sm:text-7xl lg:text-[8.5rem] leading-[0.9] tracking-tight text-foreground text-glitch">
               Ink
               <br />
               <span className="italic text-lime">shield</span>
@@ -70,30 +99,29 @@ function Index() {
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <a
-                href="#how"
-                className="group font-mono text-xs uppercase tracking-widest px-6 py-4 bg-lime text-primary-foreground hover:bg-amber transition-colors flex items-center gap-3"
+                href="#lab"
+                className="group font-mono text-xs uppercase tracking-widest px-6 py-4 bg-lime text-primary-foreground hover:bg-amber transition-colors flex items-center gap-3 hover-lift"
               >
-                Read the pipeline
+                Open the lab
                 <span className="group-hover:translate-x-1 transition-transform">→</span>
               </a>
               <a
-                href="#strength"
-                className="font-mono text-xs uppercase tracking-widest px-6 py-4 border border-border text-foreground hover:border-lime hover:text-lime transition-colors"
+                href="#how"
+                className="font-mono text-xs uppercase tracking-widest px-6 py-4 border border-border text-foreground hover:border-lime hover:text-lime transition-colors hover-lift"
               >
-                Protection settings
+                Read the pipeline
               </a>
             </div>
           </div>
 
           <div className="lg:col-span-4 lg:pl-6 space-y-4 font-mono text-xs">
-            <TerminalRow label="runtime" value="server + browser" accent />
-            <TerminalRow label="attack" value="PGD (iterative)" />
-            <TerminalRow label="epsilon" value="0.005 – 0.040" />
-            <TerminalRow label="uploads" value="S3 (presigned)" />
-            <TerminalRow label="model" value="ResNet-50" />
+            <TerminalRow label="runtime" value="server-side" accent />
+            <TerminalRow label="attack" value="ensemble PGD" />
+            <TerminalRow label="models" value="RN-50 + MNv2" />
+            <TerminalRow label="epsilon" value="0.005 – 0.050" />
+            <TerminalRow label="storage" value="S3 (private)" />
             <TerminalRow label="status" value="protected" accent />
           </div>
-
         </div>
 
         <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-10 pb-6 font-mono text-[0.65rem] uppercase tracking-[0.25em] text-muted-foreground/70">
@@ -101,10 +129,9 @@ function Index() {
         </div>
       </section>
 
-
       {/* MARQUEE */}
-      <section className="border-y border-border bg-ink overflow-hidden py-6">
-        <div className="flex whitespace-nowrap font-display italic text-3xl md:text-5xl text-muted-foreground" style={{ animation: "marquee 20s linear infinite" }}>
+      <section className="relative border-y border-border bg-ink overflow-hidden py-6 plus-grid">
+        <div className="relative z-10 flex whitespace-nowrap font-display italic text-3xl md:text-5xl text-muted-foreground" style={{ animation: "marquee 30s linear infinite" }}>
           {Array.from({ length: 2 }).map((_, i) => (
             <div key={i} className="flex items-center gap-10 pr-10 shrink-0">
               <span>digital self-defense</span>
@@ -164,12 +191,11 @@ function Index() {
           <div className="grid lg:grid-cols-12 gap-10">
             <div className="lg:col-span-7 space-y-8">
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Inkshield applies a real PyTorch PGD attack server-side against
-                a pretrained ResNet-50. The perturbation is nearly imperceptible
-                to a viewer, but disruptive to the feature extractors that power
-                scrapers and AI captioners.
+                Inkshield runs a real ensemble PGD attack server-side against a
+                pretrained ResNet-50 and MobileNetV2. The perturbation is nearly
+                imperceptible to a viewer, but disruptive to the feature extractors
+                that power scrapers and AI captioners.
               </p>
-
 
               <div className="border border-border bg-background/40 p-6 font-mono text-sm overflow-x-auto">
                 <div className="text-muted-foreground text-xs mb-3">
@@ -187,16 +213,15 @@ function Index() {
                 <MethodCard
                   tag="Iterative · multi-step"
                   name="PGD"
-                  desc="Projected Gradient Descent. Iteratively nudges pixels in the gradient direction for 8 steps, clipped to an epsilon-ball, stronger protection than single-step FGSM."
+                  desc="Projected Gradient Descent. Iteratively nudges pixels along the gradient sign, clipped to an epsilon-ball, stronger protection than single-step FGSM."
                   accent
                 />
                 <MethodCard
-                  tag="Server-side · AWS EC2"
-                  name="API"
-                  desc="The PyTorch model and attack run on the server. Your image is sent over HTTPS, processed, and returned as a presigned URL - no model weights needed in the browser."
+                  tag="Two models · one attack"
+                  name="Ensemble"
+                  desc="Gradients are averaged across ResNet-50 and MobileNetV2 so the perturbation transfers, disrupting more than a single architecture would."
                 />
               </div>
-
             </div>
 
             <div className="lg:col-span-5">
@@ -222,29 +247,28 @@ function Index() {
             </div>
           </div>
 
-          {/* Perf */}
+          {/* Pipeline */}
           <div className="mt-24 grid lg:grid-cols-12 gap-10 items-end">
             <div className="lg:col-span-5">
               <div className="font-mono text-xs uppercase tracking-widest text-amber mb-4">
                 Server-side pipeline
               </div>
               <h3 className="font-display text-3xl lg:text-5xl leading-tight">
-                  Real model,
-                  <br /><span className="italic">real attack.</span>
-                </h3>
-              </div>
-              <div className="lg:col-span-7 space-y-4 text-muted-foreground text-lg leading-relaxed">
-                <p>
-                  The full PyTorch PGD attack runs server-side on EC2 against a
-                  pretrained ResNet-50 - not a browser approximation:
-                </p>
-                <ul className="space-y-2 font-mono text-sm">
-                  <li className="flex gap-3"><span className="text-lime">→</span> image uploaded to FastAPI on EC2</li>
-                  <li className="flex gap-3"><span className="text-lime">→</span> 8-step PGD iterates gradient sign against ResNet-50</li>
-                  <li className="flex gap-3"><span className="text-lime">→</span> protected image stored privately in S3, returned as presigned URL</li>
-                </ul>
-              </div>
-
+                Real models,
+                <br /><span className="italic">real attack.</span>
+              </h3>
+            </div>
+            <div className="lg:col-span-7 space-y-4 text-muted-foreground text-lg leading-relaxed">
+              <p>
+                The full PyTorch and TensorFlow ensemble PGD attack runs on the
+                ML service, not a browser approximation:
+              </p>
+              <ul className="space-y-2 font-mono text-sm">
+                <li className="flex gap-3"><span className="text-lime">→</span> image uploaded through the Go API gateway to the FastAPI ML service</li>
+                <li className="flex gap-3"><span className="text-lime">→</span> multi-step PGD iterates the gradient sign against the ResNet-50 + MobileNetV2 ensemble</li>
+                <li className="flex gap-3"><span className="text-lime">→</span> protected image stored privately in S3, tied to your account, returned as a presigned URL</li>
+              </ul>
+            </div>
           </div>
         </div>
       </section>
@@ -262,7 +286,7 @@ function Index() {
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
               A dial from invisible to unmistakable. The default of 0.020 sits at
               the sweet spot, minor grain only visible at zoom, strong enough to
-              disrupt ResNet-50 classification.
+              disrupt the ensemble's classification.
             </p>
           </div>
         </div>
@@ -310,16 +334,17 @@ function Index() {
               <span className="italic text-lime">privately stored.</span>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-md">
-              Images are uploaded over HTTPS, processed in isolation, and stored
-              in a private S3 bucket. No third-party AI services, no telemetry,
-              no public access, only you hold the presigned download link.
+              Images are uploaded over HTTPS, protected in isolation, and stored
+              in a private S3 bucket tied to your account. No third-party AI
+              services and no public access, unless you choose to publish to the
+              gallery, only you hold the presigned download link.
             </p>
           </div>
           <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
             {privacy.map((p, i) => (
               <div
                 key={p}
-                className="border border-border p-6 bg-background/40 hover:border-lime transition-colors group"
+                className="border border-border p-6 bg-background/40 hover:border-lime transition-colors group hover-lift"
               >
                 <div className="font-mono text-xs text-muted-foreground mb-3">
                   0{i + 1}
@@ -341,17 +366,16 @@ function Index() {
           </div>
           <div className="lg:col-span-9">
             <h2 className="font-display text-4xl lg:text-6xl leading-none">
-              Open source,
+              A real backend,
               <br />
-              <span className="italic text-amber">self-hostable.</span>
+              <span className="italic text-amber">not a browser trick.</span>
             </h2>
-
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-16">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {Object.entries(stack).map(([group, items]) => (
-            <div key={group} className="border border-border p-6">
+            <div key={group} className="border border-border p-6 hover-lift">
               <div className="font-mono text-xs uppercase tracking-widest text-lime mb-4">
                 {group}
               </div>
@@ -372,6 +396,7 @@ function Index() {
             "Both model predictions shown side by side",
             "MongoDB job history logging",
             "Presigned S3 download URLs",
+            "Private accounts + optional publishing",
             "One-click PNG download",
           ].map((f) => (
             <div key={f} className="flex items-start gap-3 border-t border-border pt-4">
@@ -380,6 +405,11 @@ function Index() {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* GALLERY PREVIEW */}
+      <section id="gallery" className="border-t border-border bg-ink">
+        <GalleryPreview />
       </section>
 
       {/* CTA */}
@@ -396,19 +426,21 @@ function Index() {
             <span className="italic text-lime">not datasets.</span>
           </h2>
           <p className="mt-8 max-w-xl mx-auto text-lg text-muted-foreground">
-            Inkshield sends your image over HTTPS to a real PyTorch PGD attack
-            running on EC2. The protected file lands in private S3 storage and
-            comes back as a time-limited download link. Load your art, dial in
-            a shield, download the protected file.
+            Inkshield sends your image to a real ensemble PGD attack running on
+            the ML service. The protected file lands in private S3 storage on
+            your account and comes back as a time-limited download link. Load
+            your art, dial in a shield, download the protected file.
           </p>
           <div className="mt-12 flex flex-wrap gap-4 justify-center">
-            <a href="#lab" className="font-mono text-xs uppercase tracking-widest px-8 py-4 bg-lime text-primary-foreground hover:bg-amber transition-colors">
+            <a href="#lab" className="font-mono text-xs uppercase tracking-widest px-8 py-4 bg-lime text-primary-foreground hover:bg-amber transition-colors hover-lift">
               Open the lab
             </a>
-            <a href="#how" className="font-mono text-xs uppercase tracking-widest px-8 py-4 border border-border hover:border-lime hover:text-lime transition-colors">
-              How it works
-            </a>
-
+            <Link
+              to="/auth"
+              className="font-mono text-xs uppercase tracking-widest px-8 py-4 border border-border hover:border-lime hover:text-lime transition-colors hover-lift"
+            >
+              Create an account
+            </Link>
           </div>
         </div>
       </section>
@@ -420,13 +452,109 @@ function Index() {
             <span className="inline-block w-2 h-2 bg-lime rounded-full" />
             <span>inkshield, a form of digital self-defense</span>
           </div>
-          <div className="flex gap-6 uppercase tracking-widest">
-            <a href="#" className="hover:text-lime transition-colors">GitHub</a>
-            <a href="#" className="hover:text-lime transition-colors">Docs</a>
-            <a href="#" className="hover:text-lime transition-colors">Contact</a>
+          <div className="flex gap-6 items-center uppercase tracking-widest">
+            <a href="https://github.com/tiffany-mares/image-protect" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="hover:text-lime transition-colors hover-lift"><Github size={16} strokeWidth={1.5} /></a>
+            <a href="https://www.linkedin.com/in/tiffanymares/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="hover:text-lime transition-colors hover-lift"><Linkedin size={16} strokeWidth={1.5} /></a>
+            <a href="https://tiffanymares.com/" target="_blank" rel="noopener noreferrer" className="hover:text-lime transition-colors hover-lift">Contact</a>
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function GalleryPreview() {
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchGallery("popular")
+      .then((data) => {
+        if (!cancelled) setImages(data.slice(0, 6));
+      })
+      .catch(() => {
+        if (!cancelled) setImages([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-24 lg:py-32">
+      <div className="grid lg:grid-cols-12 gap-10 mb-14">
+        <div className="lg:col-span-3">
+          <SectionLabel>§ 07 · Gallery</SectionLabel>
+        </div>
+        <div className="lg:col-span-9">
+          <h2 className="font-display text-4xl lg:text-6xl leading-none">
+            Works from the
+            <br />
+            <span className="italic text-lime">community.</span>
+          </h2>
+          <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
+            Protected images that Inkshield users chose to publish. Open the full
+            gallery to browse, sort, and like your favorites.
+          </p>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="font-mono text-sm text-muted-foreground">loading gallery…</div>
+      ) : images.length === 0 ? (
+        <div className="border border-dashed border-border p-12 text-center">
+          <div className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-4">
+            nothing published yet
+          </div>
+          <a
+            href="#lab"
+            className="inline-block font-mono text-xs uppercase tracking-widest px-4 py-3 border border-lime text-lime hover:bg-lime hover:text-primary-foreground transition-colors hover-lift"
+          >
+            ▶ Protect &amp; publish yours
+          </a>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {images.map((img) => (
+            <article
+              key={img.id}
+              className="border border-border bg-background/40 flex flex-col group hover-lift"
+            >
+              <div className="relative aspect-square bg-black/40 overflow-hidden">
+                <img
+                  src={img.url}
+                  alt="Published protected image"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-3 font-mono text-xs text-white pointer-events-none">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg leading-none">♥</span>
+                    <span className="text-sm">{img.like_count} {img.like_count === 1 ? "like" : "likes"}</span>
+                  </div>
+                  <div className="text-[0.65rem] uppercase tracking-widest text-white/70">
+                    {timeAgo(img.created_at)}
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <div className="flex justify-center">
+        <Link
+          to="/gallery"
+          className="inline-flex items-center gap-3 font-mono text-xs uppercase tracking-widest px-6 py-4 border border-lime text-lime hover:bg-lime hover:text-primary-foreground transition-colors hover-lift"
+        >
+          Open full gallery
+          <span>→</span>
+        </Link>
+      </div>
     </div>
   );
 }

@@ -37,8 +37,8 @@ export function Header() {
           </button>
         ) : (
           <Link
-            to="/signin"
-            className="font-mono text-xs uppercase tracking-widest px-4 py-2 border border-lime text-lime hover:bg-lime hover:text-primary-foreground transition-colors"
+            to="/auth"
+            className="font-mono text-xs uppercase tracking-widest px-4 py-2 border border-lime text-lime hover:bg-lime hover:text-primary-foreground transition-colors hover-lift"
           >
             Sign in
           </Link>
