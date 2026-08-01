@@ -187,7 +187,7 @@ lazy S3 client) must be preserved exactly.
 
 ## Sub-Task 5 - Update frontend (ProtectionLab.tsx + index.tsx)
 
-**Status:** [ ] pending
+**Status:** [x] complete
 
 ### Intent
 Update frontend to handle new predictions shape (two models) and update
@@ -221,7 +221,7 @@ stack/features copy for TensorFlow and MongoDB.
 
 ## Sub-Task 6 - Update README
 
-**Status:** [ ] pending
+**Status:** [x] complete
 
 ### Intent
 Update README to document the new stack accurately.

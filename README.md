@@ -80,26 +80,30 @@ Both models run on CPU; weights are downloaded automatically by `torchvision` an
 ### System Architecture
 
 ```
-[React SPA on Vercel]
-        |
-        | HTTPS POST /protect (multipart image + epsilon)
-        v
-[FastAPI on EC2 :8000]
-   |            |
-   |            v
-   |     [Ensemble PGD attack]
-   |       |             |
-   |       v             v
-   |  [ResNet-50]   [MobileNetV2]
-   |  (PyTorch)     (TensorFlow)
-   |            |
-   v            v
+[Browser]
+    |
+    | HTTPS (DuckDNS domain)
+    v
+[Caddy :443] ---- all other paths ----> [React SSR node server :3000]
+    |
+    | /api/* (prefix stripped)           (both services on the same EC2 instance)
+    v
+[FastAPI :8000]  <-- POST /protect (multipart image + epsilon)
+    |
+    v
+[Ensemble PGD attack]
+   |             |
+   v             v
+[ResNet-50]  [MobileNetV2]
+(PyTorch)    (TensorFlow)
+    |
+    v
 [boto3] --> [S3 bucket: originals/ + protected/]
-   |
-   v
+    |
+    v
 [MongoDB Atlas: inkshield.jobs]
-   |
-   v
+    |
+    v
 [JSON response: protected image URL, predictions (resnet50 + mobilenet), job_id]
 ```
 
@@ -129,7 +133,7 @@ IBM Bob (the AI software engineering assistant) was used throughout every phase 
 - **FastAPI backend generation:** Bob wrote `backend/main.py` — CORS middleware, multipart upload handling, UUID job IDs, S3 upload via boto3, presigned URL generation, and the health check endpoint.
 - **React frontend generation:** Bob scaffolded and wrote the full `frontend/` directory — `ProtectTool.tsx` with epsilon slider, file upload zone, loading state, before/after prediction cards using shadcn/ui, and Tailwind styling.
 - **S3 provisioning script:** Bob wrote `backend/s3_setup.py` — idempotent bucket creation, block-all-public-access, and least-privilege bucket policy scoped to the EC2 IAM role ARN.
-- **Deployment config:** Bob wrote `backend/protect-api.service` (systemd unit for EC2) and `frontend/vercel.json` (SPA rewrite rules).
+- **Deployment config:** Bob wrote the systemd units (`backend/protect-api.service`, `deploy/inkshield-web.service`) and the Caddy reverse-proxy config (`deploy/Caddyfile`).
 - **README structure:** Bob authored this README, ensuring all IBM AI Builders Challenge submission checklist items are covered.
 
 ---
@@ -170,8 +174,8 @@ Images are stored in a private S3 bucket and served via 1-hour presigned URLs. T
 | Image storage | AWS S3 (private bucket, presigned URLs) |
 | Job logging | MongoDB Atlas M0 (free tier), pymongo + dnspython |
 | Frontend | React 19 + TanStack Start + TypeScript + Tailwind v4 |
-| Frontend hosting | Vercel |
-| Backend hosting | AWS EC2 (Ubuntu, systemd-managed) |
+| Hosting | Single AWS EC2 instance (Ubuntu, spot `t3.medium`) running both services under systemd |
+| Reverse proxy / TLS | Caddy (automatic HTTPS) on a DuckDNS domain |
 | AWS auth | EC2 IAM instance role (no hardcoded credentials) |
 
 ---
@@ -198,7 +202,7 @@ pip install -r requirements.txt
 
 # S3 is optional -- omit S3_BUCKET to use base64 data URL fallback
 $env:S3_BUCKET = "my-image-protect-bucket"   # PowerShell
-$env:CORS_ORIGIN = "http://localhost:5173"
+$env:CORS_ORIGIN = "http://localhost:8080"
 
 # MongoDB is optional -- omit to skip job logging
 # Local:  $env:MONGODB_URI = "mongodb://localhost:27017"
@@ -213,6 +217,12 @@ curl http://localhost:8000/health
 # {"status":"ok"}
 ```
 
+Tests:
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
 ### Frontend
 
 ```bash
@@ -222,54 +232,60 @@ cp .env.example .env          # edit VITE_API_URL if needed
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:8080](http://localhost:8080).
 
 ---
 
 ## Deployment
 
-### Backend — AWS EC2
+Everything runs on a single EC2 instance behind Caddy, which terminates TLS for a
+DuckDNS domain and routes `/api/*` to the FastAPI backend (port 8000) and everything
+else to the frontend's node server (port 3000). Config lives in `deploy/Caddyfile`,
+`deploy/inkshield-web.service`, and `backend/protect-api.service`.
 
-1. **Provision an EC2 instance** (Ubuntu 22.04 LTS recommended; `t3.medium` or larger for acceptable CPU inference speed).
-2. **Attach an IAM instance profile** with a role that has `s3:PutObject` and `s3:GetObject` on your S3 bucket. No credentials in code or `.env`.
-3. **Run S3 setup** once from your local machine (requires IAM user credentials with S3 admin rights):
+1. **Provision an EC2 instance** (Ubuntu 22.04+; `t3.medium` or larger for acceptable
+   CPU inference speed — a persistent spot request keeps costs around $15/mo).
+2. **Attach an IAM instance profile** with a role that has `s3:PutObject` and
+   `s3:GetObject` scoped to your S3 bucket. No credentials in code or `.env`.
+3. **Point a DuckDNS subdomain** at the instance's public IP. Because a spot instance's
+   IP changes after an interruption, install a refresh cron on the instance — store the
+   update URL (with your token) in a root-only file and curl it every 5 minutes:
    ```bash
-   cd backend
-   $env:S3_BUCKET = "my-image-protect-bucket"
-   $env:AWS_REGION = "us-east-1"
-   $env:IAM_ROLE_ARN = "arn:aws:iam::123456789012:role/ImageProtectEC2Role"
-   python s3_setup.py
+   echo 'url="https://www.duckdns.org/update?domains=<sub>&token=<token>&ip="' | sudo tee /etc/duckdns.conf
+   sudo chmod 600 /etc/duckdns.conf
+   (crontab -l; echo '*/5 * * * * sudo curl -s -K /etc/duckdns.conf') | crontab -
    ```
-4. **Clone the repo** onto the EC2 instance and install dependencies:
+4. **Clone the repo and build both apps** on the instance:
    ```bash
    git clone <repo-url> /home/ubuntu/app
    cd /home/ubuntu/app/backend
-   python3 -m venv .venv && source .venv/bin/activate
-   pip install -r requirements.txt
+   python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+   cd ../frontend
+   npm install && npm run build        # produces .output/server/index.mjs (nitro node-server)
    ```
-5. **Create `/home/ubuntu/app/.env`** on the instance:
+5. **Create `/home/ubuntu/app/.env`** (S3 and Mongo are both optional — the API falls
+   back to base64 image URLs and skips job logging when they're unset):
    ```
+   AWS_DEFAULT_REGION=us-east-1
    S3_BUCKET=my-image-protect-bucket
-   CORS_ORIGIN=https://your-app.vercel.app
    MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/?retryWrites=true
    ```
-6. **Install the systemd service**:
+6. **Install Caddy and the systemd services**:
    ```bash
+   sudo apt install caddy
+   sudo cp /home/ubuntu/app/deploy/Caddyfile /etc/caddy/Caddyfile   # edit the domain first
    sudo cp /home/ubuntu/app/backend/protect-api.service /etc/systemd/system/
+   sudo cp /home/ubuntu/app/deploy/inkshield-web.service /etc/systemd/system/
    sudo systemctl daemon-reload
-   sudo systemctl enable protect-api
-   sudo systemctl start protect-api
-   sudo systemctl status protect-api
+   sudo systemctl enable --now protect-api inkshield-web caddy
    ```
-   The service file (`backend/protect-api.service`) sets `WorkingDirectory`, `EnvironmentFile`, and `Restart=always` — the API restarts automatically on crash or reboot.
-7. **Open port 8000** in the EC2 security group (or put the API behind an Nginx reverse proxy on port 443).
+   `enable --now` matters: enabled services restart automatically after a spot
+   interruption. Caddy fetches the TLS certificate on first request.
+7. **Security group**: open ports 80 and 443 only (plus 22 for SSH). The app ports
+   (8000, 3000) stay bound to localhost behind Caddy.
 
-### Frontend — Vercel
-
-1. Push the `frontend/` directory to a GitHub repository.
-2. Import the project in [Vercel](https://vercel.com) — set root directory to `frontend`.
-3. Add environment variable `VITE_API_URL=https://<your-ec2-ip-or-domain>:8000` in the Vercel project settings.
-4. Deploy. The `frontend/vercel.json` handles SPA routing rewrites automatically.
+The frontend's production build uses `VITE_API_URL=/api` (`frontend/.env.production`) —
+same-origin requests that Caddy strips the `/api` prefix from before proxying to FastAPI.
 
 ---
 
