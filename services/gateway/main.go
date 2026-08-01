@@ -17,6 +17,7 @@ type config struct {
 	mlURL        string
 	s3Bucket     string
 	awsRegion    string
+	corsOrigin   string
 }
 
 func env(key, fallback string) string {
@@ -35,7 +36,30 @@ func loadConfig() config {
 		mlURL:        env("ML_SERVICE_URL", "http://localhost:8000"),
 		s3Bucket:     os.Getenv("S3_BUCKET"),
 		awsRegion:    env("AWS_DEFAULT_REGION", "us-east-1"),
+		corsOrigin:   env("CORS_ORIGIN", "*"),
 	}
+}
+
+// stripUpstreamCORS removes CORS headers set by backend services (the
+// ml-service runs its own CORS middleware) so the gateway's withCORS is the
+// single source of truth — duplicate Access-Control-Allow-Origin values make
+// browsers reject the response outright.
+func stripUpstreamCORS(res *http.Response) error {
+	for _, h := range []string{
+		"Access-Control-Allow-Origin",
+		"Access-Control-Allow-Methods",
+		"Access-Control-Allow-Headers",
+		"Access-Control-Allow-Credentials",
+	} {
+		res.Header.Del(h)
+	}
+	return nil
+}
+
+func newProxy(target *url.URL) *httputil.ReverseProxy {
+	p := httputil.NewSingleHostReverseProxy(target)
+	p.ModifyResponse = stripUpstreamCORS
+	return p
 }
 
 func addProxies(mux *http.ServeMux, authURL, mlURL string) {
@@ -47,8 +71,8 @@ func addProxies(mux *http.ServeMux, authURL, mlURL string) {
 	if err != nil {
 		log.Fatalf("bad ML_SERVICE_URL: %v", err)
 	}
-	mux.Handle("/auth/", httputil.NewSingleHostReverseProxy(authTarget))
-	mux.Handle("POST /protect", httputil.NewSingleHostReverseProxy(mlTarget))
+	mux.Handle("/auth/", newProxy(authTarget))
+	mux.Handle("POST /protect", newProxy(mlTarget))
 }
 
 func main() {
@@ -73,5 +97,5 @@ func main() {
 	addProxies(mux, cfg.authURL, cfg.mlURL)
 
 	log.Printf("gateway listening on :%s", cfg.port)
-	log.Fatal(http.ListenAndServe(":"+cfg.port, mux))
+	log.Fatal(http.ListenAndServe(":"+cfg.port, withCORS(cfg.corsOrigin, mux)))
 }

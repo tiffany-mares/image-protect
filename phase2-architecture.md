@@ -279,11 +279,12 @@ Ordered so each step produces something testable before moving to the next. Esti
 **Test:** full curl/Postman walkthrough — signup two test users, protect+save an image as user A, publish it, like it as user B, confirm it shows in user B's Liked tab and in `/gallery?sort=popular`.
 
 ### Step 5 — Frontend (~1-1.5 days)
-- [ ] Sign-in/sign-up pages, JWT stored client-side, attached to all authenticated fetch calls
-- [ ] "Check your email" pending state post-signup
-- [ ] Lab page: add "Save to dashboard" (only rendered if logged in), calls existing `/protect` with the auth header
-- [ ] Dashboard page: grid of `GET /dashboard` results, tabs for All / Favorites / Liked, favorite/publish toggle buttons wired to the PATCH routes
-- [ ] Gallery page: `GET /gallery` with a sort dropdown, like button — logged-out click redirects to sign-in instead of calling the API
+- [x] Sign-in/sign-up pages (`src/routes/signin.tsx`, `signup.tsx`), JWT in localStorage via `src/lib/auth.ts`, attached to all authenticated calls via `src/lib/api.ts` (8 vitest tests)
+- [x] "Check your email" pending state post-signup (and inline 409 "email already registered" error, verified in browser)
+- [x] Lab: `/protect` now goes through the gateway with the auth header; "Saved to your dashboard ✓" indicator when logged in, sign-in prompt when not (verified in browser)
+- [x] Dashboard page: grid with All / Favorites / Liked tabs, favorite/publish/unlike wired to the PATCH/DELETE routes (verified in browser; SSR-hydration redirect bug found and fixed)
+- [x] Gallery page: sort dropdown (recent/popular), like button idempotent for users, logged-out click redirects to sign-in (verified in browser)
+- Note: gateway gained CORS middleware (`CORS_ORIGIN` env, default `*`; proxies strip upstream CORS headers to avoid browser-rejected duplicates) — Step 6 must pin `CORS_ORIGIN` to the real frontend origin
 
 **Test:** the full user journey clickable end to end in the browser against a local or dev backend.
 

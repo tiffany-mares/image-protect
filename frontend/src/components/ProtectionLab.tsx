@@ -1,4 +1,7 @@
 import { useCallback, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { authHeaders } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 
 type Prediction = {
   index: number;
@@ -15,6 +18,7 @@ type ApiResult = {
   original_url: string;
   protected_url: string;
   job_id: string;
+  image_id?: string;
   predictions: {
     resnet50: ModelPredictions;
     mobilenet: ModelPredictions;
@@ -35,6 +39,7 @@ export function ProtectionLab() {
   const [result, setResult] = useState<ApiResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { loggedIn } = useAuth();
 
   const loadFile = useCallback((f: File) => {
     if (!f.type.startsWith("image/")) return;
@@ -65,8 +70,8 @@ export function ProtectionLab() {
 
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}/protect`,
-        { method: "POST", body: form },
+        `${import.meta.env.VITE_API_URL ?? "http://localhost:8082"}/protect`,
+        { method: "POST", body: form, headers: authHeaders() },
       );
       if (!res.ok) {
         const text = await res.text();
@@ -183,6 +188,20 @@ export function ProtectionLab() {
               ↓ Download protected
             </button>
           </div>
+
+          {/* Save-to-dashboard status */}
+          {loggedIn && result?.image_id && (
+            <p className="mt-3 font-mono text-xs text-lime">
+              Saved to your dashboard ✓{" "}
+              <Link to="/dashboard" className="underline hover:text-amber">view</Link>
+            </p>
+          )}
+          {!loggedIn && result && (
+            <p className="mt-3 font-mono text-xs text-muted-foreground">
+              <Link to="/signin" className="text-lime hover:text-amber">Sign in</Link>{" "}
+              to save results to a dashboard.
+            </p>
+          )}
         </div>
 
         {/* Error */}

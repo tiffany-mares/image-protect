@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { Header } from "@/components/Header";
 import gradcamImg from "@/assets/gradcam-viz.jpg";
 
 const heroImg = "/carmen-aguado.png";
@@ -34,29 +35,7 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden">
       {/* NAV */}
-      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-md bg-background/60 border-b border-border">
-        <div className="max-w-[1400px] mx-auto px-6 lg:px-10 h-16 flex items-center justify-between">
-          <a href="#top" className="flex items-center gap-2 font-mono text-sm tracking-tight">
-            <span className="inline-block w-2 h-2 bg-lime rounded-full animate-pulse" />
-            <span className="text-foreground">inkshield</span>
-            <span className="text-muted-foreground">/ protect</span>
-          </a>
-          <nav className="hidden md:flex items-center gap-8 font-mono text-xs uppercase tracking-widest text-muted-foreground">
-            <a href="#lab" className="hover:text-lime transition-colors">Lab</a>
-            <a href="#how" className="hover:text-lime transition-colors">How it works</a>
-            <a href="#strength" className="hover:text-lime transition-colors">Strength</a>
-            <a href="#privacy" className="hover:text-lime transition-colors">Privacy</a>
-            <a href="#stack" className="hover:text-lime transition-colors">Stack</a>
-          </nav>
-          <a
-            href="#lab"
-            className="font-mono text-xs uppercase tracking-widest px-4 py-2 border border-lime text-lime hover:bg-lime hover:text-primary-foreground transition-colors"
-          >
-            Open lab
-          </a>
-
-        </div>
-      </header>
+      <Header />
 
       {/* HERO */}
       <section id="top" className="relative pt-16 min-h-screen">
