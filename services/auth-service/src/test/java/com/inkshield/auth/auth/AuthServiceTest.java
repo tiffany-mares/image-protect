@@ -52,10 +52,8 @@ class AuthServiceTest {
         User saved = captor.getValue();
         assertThat(saved.getPasswordHash()).isNotEqualTo("hunter22");
         assertThat(encoder.matches("hunter22", saved.getPasswordHash())).isTrue();
-        // No email verification: created ready-to-use, no email sent.
+        // No email verification: the account is created ready to use.
         assertThat(saved.isVerified()).isTrue();
-        assertThat(saved.getVerificationToken()).isNull();
-        verify(email, never()).sendVerification(any(), any());
     }
 
     @Test
@@ -64,24 +62,6 @@ class AuthServiceTest {
         assertThatThrownBy(() -> svc.signup("a@b.com", "x"))
                 .isInstanceOfSatisfying(ApiException.class,
                         e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.CONFLICT));
-    }
-
-    @Test
-    void verifyMarksUserVerified() {
-        User u = new User("a@b.com", "h", "tok123");
-        when(repo.findByVerificationToken("tok123")).thenReturn(Optional.of(u));
-        svc.verify("tok123");
-        assertThat(u.isVerified()).isTrue();
-        assertThat(u.getVerificationToken()).isNull();
-        verify(repo).save(u);
-    }
-
-    @Test
-    void verifyBadTokenIs400() {
-        when(repo.findByVerificationToken("nope")).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> svc.verify("nope"))
-                .isInstanceOfSatisfying(ApiException.class,
-                        e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST));
     }
 
     @Test
@@ -94,7 +74,7 @@ class AuthServiceTest {
 
     @Test
     void loginWrongPasswordIs401() {
-        User u = new User("a@b.com", encoder.encode("right"), null);
+        User u = new User("a@b.com", encoder.encode("right"));
         when(repo.findByEmail("a@b.com")).thenReturn(Optional.of(u));
         assertThatThrownBy(() -> svc.login("a@b.com", "wrong"))
                 .isInstanceOfSatisfying(ApiException.class,
@@ -102,9 +82,8 @@ class AuthServiceTest {
     }
 
     @Test
-    void loginVerifiedReturnsJwt() {
-        User u = new User("a@b.com", encoder.encode("pw"), "tok");
-        u.markVerified();
+    void loginReturnsJwt() {
+        User u = new User("a@b.com", encoder.encode("pw"));
         java.util.UUID id = java.util.UUID.randomUUID();
         org.springframework.test.util.ReflectionTestUtils.setField(u, "id", id);
         when(repo.findByEmail("a@b.com")).thenReturn(Optional.of(u));
@@ -115,8 +94,7 @@ class AuthServiceTest {
 
     @Test
     void forgotPasswordKnownUserStoresTokenAndEmailsLink() {
-        User u = new User("a@b.com", encoder.encode("pw"), null);
-        u.markVerified();
+        User u = new User("a@b.com", encoder.encode("pw"));
         when(repo.findByEmail("a@b.com")).thenReturn(Optional.of(u));
         svc.forgotPassword("a@b.com");
         assertThat(u.getResetToken()).isNotBlank();
@@ -135,8 +113,7 @@ class AuthServiceTest {
 
     @Test
     void forgotPasswordSwallowsEmailDeliveryFailure() {
-        User u = new User("a@b.com", encoder.encode("pw"), null);
-        u.markVerified();
+        User u = new User("a@b.com", encoder.encode("pw"));
         when(repo.findByEmail("a@b.com")).thenReturn(Optional.of(u));
         doThrow(new RuntimeException("SES rejected")).when(email).sendPasswordReset(any(), any());
         // Must not throw even though delivery failed, and the token is still stored.
@@ -146,7 +123,7 @@ class AuthServiceTest {
 
     @Test
     void resetPasswordUpdatesHashAndClearsToken() {
-        User u = new User("a@b.com", encoder.encode("old"), null);
+        User u = new User("a@b.com", encoder.encode("old"));
         u.startPasswordReset("tok", Instant.now().plus(Duration.ofMinutes(30)));
         when(repo.findByResetToken("tok")).thenReturn(Optional.of(u));
         svc.resetPassword("tok", "brandnew1");
@@ -158,7 +135,7 @@ class AuthServiceTest {
 
     @Test
     void resetPasswordExpiredTokenIs400() {
-        User u = new User("a@b.com", encoder.encode("old"), null);
+        User u = new User("a@b.com", encoder.encode("old"));
         u.startPasswordReset("tok", Instant.now().minus(Duration.ofMinutes(1)));
         when(repo.findByResetToken("tok")).thenReturn(Optional.of(u));
         assertThatThrownBy(() -> svc.resetPassword("tok", "brandnew1"))

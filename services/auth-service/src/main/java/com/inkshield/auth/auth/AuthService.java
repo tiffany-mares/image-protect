@@ -45,15 +45,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.CONFLICT, "email already registered");
         }
         // No email verification: the account is usable immediately.
-        User user = new User(emailAddr, encoder.encode(password), null);
-        user.markVerified();
-        repo.save(user);
-    }
-
-    @Transactional
-    public void verify(String token) {
-        User user = repo.findByVerificationToken(token)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "invalid or already-used token"));
+        User user = new User(emailAddr, encoder.encode(password));
         user.markVerified();
         repo.save(user);
     }

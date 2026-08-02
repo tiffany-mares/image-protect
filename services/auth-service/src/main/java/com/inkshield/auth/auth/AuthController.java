@@ -8,11 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,13 +33,7 @@ public class AuthController {
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, String> signup(@RequestBody @Valid SignupRequest req) {
         auth.signup(req.email(), req.password());
-        return Map.of("message", "check your email for a verification link");
-    }
-
-    @GetMapping("/verify")
-    public Map<String, String> verify(@RequestParam String token) {
-        auth.verify(token);
-        return Map.of("message", "email verified — you can now log in");
+        return Map.of("message", "account created");
     }
 
     @PostMapping("/login")

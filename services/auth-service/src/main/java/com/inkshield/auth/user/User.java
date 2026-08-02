@@ -28,9 +28,6 @@ public class User {
     @Column(nullable = false)
     private boolean verified = false;
 
-    @Column(name = "verification_token")
-    private String verificationToken;
-
     @Column(name = "reset_token")
     private String resetToken;
 
@@ -42,10 +39,9 @@ public class User {
 
     protected User() {}
 
-    public User(String email, String passwordHash, String verificationToken) {
+    public User(String email, String passwordHash) {
         this.email = email;
         this.passwordHash = passwordHash;
-        this.verificationToken = verificationToken;
     }
 
     /** A pre-verified account for an OAuth (e.g. Google) sign-in — no local password. */
@@ -60,12 +56,10 @@ public class User {
     public String getEmail() { return email; }
     public String getPasswordHash() { return passwordHash; }
     public boolean isVerified() { return verified; }
-    public String getVerificationToken() { return verificationToken; }
     public Instant getCreatedAt() { return createdAt; }
 
     public void markVerified() {
         this.verified = true;
-        this.verificationToken = null;
     }
 
     public String getResetToken() { return resetToken; }

@@ -6,7 +6,6 @@ import { ProtectionLab } from "@/components/ProtectionLab";
 import { BootLoader } from "@/components/BootLoader";
 import { WordCycle } from "@/components/WordCycle";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { ParticleField } from "@/components/ParticleField";
 import { fetchGallery, type GalleryImage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import gradcamImg from "@/assets/gradcam-viz.jpg";
@@ -77,7 +76,6 @@ function Index() {
 
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/40" />
-          <ParticleField className="absolute inset-0 block w-full h-full pointer-events-none" />
           <div className="absolute inset-0 scanlines opacity-40 pointer-events-none" />
           <div className="absolute inset-0 noise pointer-events-none" />
         </div>

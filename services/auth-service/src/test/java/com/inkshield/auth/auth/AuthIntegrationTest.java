@@ -15,7 +15,6 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,20 +44,12 @@ class AuthIntegrationTest {
 
     @Test
     @Order(1)
-    void fullSignupVerifyLoginFlow() throws Exception {
+    void fullSignupLoginFlow() throws Exception {
         mvc.perform(post("/auth/signup").contentType("application/json")
                         .content("{\"email\":\"artist@example.com\",\"password\":\"hunter2222\"}"))
                 .andExpect(status().isCreated());
 
-        String token = repo.findByEmail("artist@example.com").orElseThrow().getVerificationToken();
-        assertThat(token).isNotBlank();
-
-        mvc.perform(post("/auth/login").contentType("application/json")
-                        .content("{\"email\":\"artist@example.com\",\"password\":\"hunter2222\"}"))
-                .andExpect(status().isForbidden());
-
-        mvc.perform(get("/auth/verify").param("token", token)).andExpect(status().isOk());
-
+        // No email verification: the account is usable immediately, so login succeeds.
         String body = mvc.perform(post("/auth/login").contentType("application/json")
                         .content("{\"email\":\"artist@example.com\",\"password\":\"hunter2222\"}"))
                 .andExpect(status().isOk())
@@ -79,6 +70,5 @@ class AuthIntegrationTest {
         mvc.perform(post("/auth/signup").contentType("application/json")
                         .content("{\"email\":\"not-an-email\",\"password\":\"short\"}"))
                 .andExpect(status().isBadRequest());
-        mvc.perform(get("/auth/verify").param("token", "bogus")).andExpect(status().isBadRequest());
     }
 }
