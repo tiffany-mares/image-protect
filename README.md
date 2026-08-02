@@ -2,7 +2,7 @@
 
 > Protect your artwork from AI scraping with adversarial perturbations — visually identical to the human eye, but invisible poison to machine-learning models.
 
-**Live demo:** [inkshield.art](https://www.inkshield.art) · **API:** [inkshield-api.duckdns.org](https://inkshield-api.duckdns.org)
+**Live at:** [inkshield.art](https://www.inkshield.art) · **API:** [inkshield-api.duckdns.org](https://inkshield-api.duckdns.org)
 
 *Built for the **IBM AI Builders Challenge** — Reimagine Creative Industries with AI.*
 
