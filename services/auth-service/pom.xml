@@ -89,6 +89,11 @@
 			<version>0.13.0</version>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Jackson for parsing Google's tokeninfo response (version from the Spring BOM). -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>sesv2</artifactId>

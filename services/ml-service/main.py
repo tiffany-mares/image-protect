@@ -115,10 +115,25 @@ async def protect(
 
         original_url  = s3.generate_presigned_url("get_object", Params={"Bucket": S3_BUCKET, "Key": original_key},  ExpiresIn=3600)
         protected_url = s3.generate_presigned_url("get_object", Params={"Bucket": S3_BUCKET, "Key": protected_key}, ExpiresIn=3600)
+        # Same object, but signed with a Content-Disposition override so S3 serves
+        # it as an attachment — makes the browser download rather than open it
+        # (the plain presigned URL is cross-origin, so the <a download> attribute
+        # is ignored). Used only by the "Download protected" button.
+        download_url = s3.generate_presigned_url(
+            "get_object",
+            Params={
+                "Bucket": S3_BUCKET,
+                "Key": protected_key,
+                "ResponseContentDisposition": f'attachment; filename="inkshield-protected-{job_id}.png"',
+            },
+            ExpiresIn=3600,
+        )
     else:
         # --- Fallback: return images as base64 data URLs (no AWS needed) ---
         original_url  = _to_data_url(original_png)
         protected_url = _to_data_url(protected_png)
+        # Data URLs are same-origin, so the <a download> attribute already works.
+        download_url = protected_url
 
     # Fail-silent job log (db.log_job never raises); user_id is None for
     # anonymous lab use — Phase 1 behavior preserved.
@@ -135,6 +150,7 @@ async def protect(
 
     response = {
         "protected_url": protected_url,
+        "download_url":  download_url,
         "original_url":  original_url,
         "job_id":        job_id,
         "predictions":   predictions,

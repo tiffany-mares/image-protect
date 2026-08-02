@@ -1,11 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { Github, Linkedin } from "lucide-react";
+import { type CSSProperties, useEffect, useState } from "react";
+import { ChevronsDown, Github, Linkedin } from "lucide-react";
 import { Header } from "@/components/Header";
 import { ProtectionLab } from "@/components/ProtectionLab";
 import { BootLoader } from "@/components/BootLoader";
 import { WordCycle } from "@/components/WordCycle";
+import { ScrollReveal } from "@/components/ScrollReveal";
+import { ParticleField } from "@/components/ParticleField";
 import { fetchGallery, type GalleryImage } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import gradcamImg from "@/assets/gradcam-viz.jpg";
 
 const heroImg = "/carmen-aguado.png";
@@ -54,9 +57,11 @@ const stack = {
 };
 
 function Index() {
+  const { loggedIn } = useAuth();
   return (
     <div className="min-h-screen bg-background text-foreground font-sans overflow-x-hidden">
       <BootLoader />
+      <ScrollReveal />
 
       {/* NAV */}
       <Header />
@@ -72,6 +77,7 @@ function Index() {
 
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-transparent" />
           <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-background/40" />
+          <ParticleField className="absolute inset-0 block w-full h-full pointer-events-none" />
           <div className="absolute inset-0 scanlines opacity-40 pointer-events-none" />
           <div className="absolute inset-0 noise pointer-events-none" />
         </div>
@@ -86,10 +92,10 @@ function Index() {
                 className="text-amber"
               />
             </div>
-            <h1 className="font-display font-light text-5xl sm:text-7xl lg:text-[8.5rem] leading-[0.9] tracking-tight text-foreground text-glitch">
+            <h1 className="font-display font-extrabold uppercase text-5xl sm:text-7xl lg:text-[8.5rem] leading-[0.85] tracking-tighter text-foreground">
               Ink
               <br />
-              <span className="italic text-lime">shield</span>
+              <span className="text-outline-lime">shield</span>
               <span className="text-lime">.</span>
             </h1>
             <p className="mt-10 max-w-xl text-lg lg:text-xl text-muted-foreground leading-relaxed">
@@ -111,6 +117,14 @@ function Index() {
               >
                 Read the pipeline
               </a>
+              {!loggedIn && (
+                <Link
+                  to="/auth"
+                  className="font-mono text-xs uppercase tracking-widest px-6 py-4 border border-lime text-lime hover:bg-lime hover:text-primary-foreground transition-colors hover-lift"
+                >
+                  Create an account
+                </Link>
+              )}
             </div>
           </div>
 
@@ -127,11 +141,19 @@ function Index() {
         <div className="relative z-10 max-w-[1400px] mx-auto px-6 lg:px-10 pb-6 font-mono text-[0.65rem] uppercase tracking-[0.25em] text-muted-foreground/70">
           image · Franz Xaver Winterhalter, <span className="italic">Carmen Aguado, Duchesse de Montmorency</span>, 1860, courtesy Musée National du Château de Versailles
         </div>
+
+        <a
+          href="#lab"
+          aria-label="Scroll to the lab"
+          className="scroll-cue absolute bottom-6 left-1/2 -translate-x-1/2 z-10 text-lime hover:text-amber transition-colors"
+        >
+          <ChevronsDown size={28} strokeWidth={1.5} />
+        </a>
       </section>
 
       {/* MARQUEE */}
       <section className="relative border-y border-border bg-ink overflow-hidden py-6 plus-grid">
-        <div className="relative z-10 flex whitespace-nowrap font-display italic text-3xl md:text-5xl text-muted-foreground" style={{ animation: "marquee 30s linear infinite" }}>
+        <div className="relative z-10 flex whitespace-nowrap font-display italic text-3xl md:text-5xl text-muted-foreground" style={{ animation: "marquee 22s linear infinite" }}>
           {Array.from({ length: 2 }).map((_, i) => (
             <div key={i} className="flex items-center gap-10 pr-10 shrink-0">
               <span>digital self-defense</span>
@@ -155,7 +177,7 @@ function Index() {
         <div className="lg:col-span-3">
           <SectionLabel>§ 01 · Inspiration</SectionLabel>
         </div>
-        <div className="lg:col-span-9 space-y-8">
+        <div data-reveal className="lg:col-span-9 space-y-8">
           <p className="font-display text-3xl lg:text-5xl leading-tight text-foreground">
             The line between{" "}
             <span className="italic text-lime">inspiration</span> and{" "}
@@ -179,17 +201,17 @@ function Index() {
             <div className="lg:col-span-3">
               <SectionLabel>§ 02 · How it works</SectionLabel>
             </div>
-            <div className="lg:col-span-9">
-              <h2 className="font-display text-4xl lg:text-6xl leading-none">
+            <div data-reveal className="lg:col-span-9">
+              <h2 className="font-display font-bold uppercase tracking-tight text-4xl lg:text-6xl leading-[0.95]">
                 An adversarial pipeline,
                 <br />
-                <span className="italic text-lime">tuned for artists.</span>
+                <span className="text-lime">tuned for artists.</span>
               </h2>
             </div>
           </div>
 
           <div className="grid lg:grid-cols-12 gap-10">
-            <div className="lg:col-span-7 space-y-8">
+            <div data-reveal className="lg:col-span-7 space-y-8">
               <p className="text-lg text-muted-foreground leading-relaxed">
                 Inkshield runs a real ensemble PGD attack server-side against a
                 pretrained ResNet-50 and MobileNetV2. The perturbation is nearly
@@ -224,7 +246,7 @@ function Index() {
               </div>
             </div>
 
-            <div className="lg:col-span-5">
+            <div data-reveal style={{ "--reveal-delay": "120ms" } as CSSProperties} className="lg:col-span-5">
               <figure className="border border-border relative group">
                 <img
                   src={gradcamImg}
@@ -248,7 +270,7 @@ function Index() {
           </div>
 
           {/* Pipeline */}
-          <div className="mt-24 grid lg:grid-cols-12 gap-10 items-end">
+          <div data-reveal className="mt-24 grid lg:grid-cols-12 gap-10 items-end">
             <div className="lg:col-span-5">
               <div className="font-mono text-xs uppercase tracking-widest text-amber mb-4">
                 Server-side pipeline
@@ -280,8 +302,8 @@ function Index() {
             <SectionLabel>§ 03 · Protection strength</SectionLabel>
           </div>
           <div className="lg:col-span-9">
-            <h2 className="font-display text-4xl lg:text-6xl leading-none">
-              Pick your <span className="italic text-amber">epsilon</span>.
+            <h2 className="font-display font-bold uppercase tracking-tight text-4xl lg:text-6xl leading-[0.95]">
+              Pick your <span className="text-amber">epsilon</span>.
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
               A dial from invisible to unmistakable. The default of 0.020 sits at
@@ -291,7 +313,7 @@ function Index() {
           </div>
         </div>
 
-        <div className="border border-border">
+        <div data-reveal className="border border-border">
           <div className="hidden md:grid grid-cols-12 font-mono text-[0.7rem] uppercase tracking-widest text-muted-foreground border-b border-border px-6 py-4">
             <div className="col-span-3">Setting</div>
             <div className="col-span-2">Epsilon</div>
@@ -328,10 +350,10 @@ function Index() {
         <div className="max-w-[1400px] mx-auto px-6 lg:px-10 py-24 lg:py-32 grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-5">
             <SectionLabel>§ 04 · Privacy</SectionLabel>
-            <h2 className="mt-6 font-display text-4xl lg:text-6xl leading-none">
+            <h2 className="mt-6 font-display font-bold uppercase tracking-tight text-4xl lg:text-6xl leading-[0.95]">
               Your images,
               <br />
-              <span className="italic text-lime">privately stored.</span>
+              <span className="text-lime">privately stored.</span>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-md">
               Images are uploaded over HTTPS, protected in isolation, and stored
@@ -340,7 +362,7 @@ function Index() {
               gallery, only you hold the presigned download link.
             </p>
           </div>
-          <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
+          <div data-reveal className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
             {privacy.map((p, i) => (
               <div
                 key={p}
@@ -365,15 +387,15 @@ function Index() {
             <SectionLabel>§ 05 · Under the hood</SectionLabel>
           </div>
           <div className="lg:col-span-9">
-            <h2 className="font-display text-4xl lg:text-6xl leading-none">
+            <h2 className="font-display font-bold uppercase tracking-tight text-4xl lg:text-6xl leading-[0.95]">
               A real backend,
               <br />
-              <span className="italic text-amber">not a browser trick.</span>
+              <span className="text-amber">not a browser trick.</span>
             </h2>
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+        <div data-reveal className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
           {Object.entries(stack).map(([group, items]) => (
             <div key={group} className="border border-border p-6 hover-lift">
               <div className="font-mono text-xs uppercase tracking-widest text-lime mb-4">
@@ -388,7 +410,7 @@ function Index() {
           ))}
         </div>
 
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 font-mono text-sm">
+        <div data-reveal className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 font-mono text-sm">
           {[
             "Ensemble PGD attack (ResNet-50 + MobileNetV2)",
             "Adjustable epsilon slider",
@@ -420,10 +442,10 @@ function Index() {
         </div>
         <div className="relative max-w-[1400px] mx-auto px-6 lg:px-10 py-32 lg:py-48 text-center">
           <SectionLabel className="justify-center">§ 06 · Take it back</SectionLabel>
-          <h2 className="mt-8 font-display text-5xl md:text-7xl lg:text-9xl leading-[0.9]">
+          <h2 data-reveal className="mt-8 font-display font-extrabold uppercase tracking-tighter text-5xl md:text-7xl lg:text-9xl leading-[0.85]">
             Ink,
             <br />
-            <span className="italic text-lime">not datasets.</span>
+            <span className="text-outline-lime">not datasets.</span>
           </h2>
           <p className="mt-8 max-w-xl mx-auto text-lg text-muted-foreground">
             Inkshield sends your image to a real ensemble PGD attack running on
@@ -490,11 +512,11 @@ function GalleryPreview() {
         <div className="lg:col-span-3">
           <SectionLabel>§ 07 · Gallery</SectionLabel>
         </div>
-        <div className="lg:col-span-9">
-          <h2 className="font-display text-4xl lg:text-6xl leading-none">
+        <div data-reveal className="lg:col-span-9">
+          <h2 className="font-display font-bold uppercase tracking-tight text-4xl lg:text-6xl leading-[0.95]">
             Works from the
             <br />
-            <span className="italic text-lime">community.</span>
+            <span className="text-lime">community.</span>
           </h2>
           <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
             Protected images that Inkshield users chose to publish. Open the full

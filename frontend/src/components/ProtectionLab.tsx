@@ -1,105 +1,67 @@
-import { useCallback, useRef, useState } from "react";
-import { Link } from "@tanstack/react-router";
-import { authHeaders } from "@/lib/api";
+import { useRef, useState, useSyncExternalStore } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
+import {
+  getSnapshot,
+  loadFile,
+  publishResult,
+  runProtection,
+  setEpsilon,
+  subscribe,
+  type ProtectResult,
+} from "@/lib/protectionStore";
 
-type Prediction = {
-  index: number;
-  label: string;
-  confidence: number;
-};
-
-type ModelPredictions = {
-  original: Prediction;
-  protected: Prediction;
-};
-
-type ApiResult = {
-  original_url: string;
-  protected_url: string;
-  job_id: string;
-  image_id?: string;
-  predictions: {
-    resnet50: ModelPredictions;
-    mobilenet: ModelPredictions;
-  };
-};
+type ApiResult = ProtectResult;
 
 const MAX_DIM = 768;
 
 export function ProtectionLab() {
   const fileRef = useRef<HTMLInputElement>(null);
-
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [epsilon, setEpsilon] = useState(0.02);
-  const [loading, setLoading] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ApiResult | null>(null);
   const [dragOver, setDragOver] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { loggedIn } = useAuth();
+  const navigate = useNavigate();
 
-  const loadFile = useCallback((f: File) => {
-    if (!f.type.startsWith("image/")) return;
-    setPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return URL.createObjectURL(f);
-    });
-    setFile(f);
-    setResult(null);
-    setError(null);
-  }, []);
+  // The run itself lives in a module-level store (see protectionStore.ts), so it
+  // keeps running and its result survives if the user navigates away and back.
+  const {
+    file,
+    previewUrl,
+    epsilon,
+    loading,
+    elapsed,
+    error,
+    result,
+    publishing,
+    published,
+    publishError,
+  } = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
-  const runProtection = useCallback(async () => {
-    if (!file) return;
-    setLoading(true);
-    setElapsed(0);
-    setError(null);
-    setResult(null);
+  const hasImage = file !== null;
 
-    // Start elapsed-seconds timer while the server runs PGD.
-    timerRef.current = setInterval(() => {
-      setElapsed((s) => s + 1);
-    }, 1000);
-
-    const form = new FormData();
-    form.append("file", file);
-    form.append("epsilon", String(epsilon));
-
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL ?? "http://localhost:8082"}/protect`,
-        { method: "POST", body: form, headers: authHeaders() },
-      );
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Server error ${res.status}: ${text.slice(0, 200)}`);
-      }
-      const data: ApiResult = await res.json();
-      setResult(data);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Protection failed");
-    } finally {
-      if (timerRef.current) clearInterval(timerRef.current);
-      setLoading(false);
-    }
-  }, [file, epsilon]);
-
-  const download = useCallback(() => {
+  const download = () => {
     if (!result) return;
-    // protected_url is a cross-origin S3 presigned URL. Try an anchor with the
-    // download attribute; if the browser ignores it cross-origin, it still
-    // navigates/opens the file.
+    // Prefer download_url — a presigned URL signed with a Content-Disposition
+    // override, so S3 serves it as an attachment and the browser downloads it
+    // (the plain cross-origin protected_url would just open in the tab, since
+    // the <a download> attribute is ignored cross-origin). Fall back to
+    // protected_url for older responses without download_url.
     const a = document.createElement("a");
-    a.href = result.protected_url;
+    a.href = result.download_url ?? result.protected_url;
     a.download = `inkshield-protected-${result.job_id}.png`;
     a.rel = "noopener";
     a.click();
-  }, [result]);
+  };
 
-  const hasImage = file !== null;
+  const onPublish = async () => {
+    // Publishing requires an account. A logged-out click is a sign-in prompt.
+    if (!loggedIn) {
+      navigate({ to: "/auth" });
+      return;
+    }
+    const ok = await publishResult();
+    // Signed-in publish succeeded — take the user straight to the gallery.
+    if (ok) navigate({ to: "/gallery" });
+  };
 
   return (
     <section id="lab" className="border-t border-border bg-ink">
@@ -112,10 +74,10 @@ export function ProtectionLab() {
             </div>
           </div>
           <div className="lg:col-span-9">
-            <h2 className="font-display text-4xl lg:text-6xl leading-none">
+            <h2 className="font-display font-bold uppercase tracking-tight text-4xl lg:text-6xl leading-[0.95]">
               See what a scraper sees.
               <br />
-              <span className="italic text-lime">Then break its vision.</span>
+              <span className="text-lime">Then break its vision.</span>
             </h2>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">
               Drop in an image and apply Inkshield. Your file is uploaded and
@@ -188,35 +150,73 @@ export function ProtectionLab() {
                   <span className="inline-block w-2 h-2 bg-primary-foreground rounded-full animate-pulse" />
                   Running PGD… {elapsed}s
                 </>
+              ) : result ? (
+                "⚡ Re-run at this ε"
               ) : (
                 "⚡ Protect with PGD"
               )}
             </button>
-            <button
-              onClick={download}
-              disabled={!result}
-              className="font-mono text-xs uppercase tracking-widest px-4 py-3 border border-border text-foreground hover:border-lime hover:text-lime transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover-lift"
-            >
-              ↓ Download protected
-            </button>
+            {result && (
+              <button
+                onClick={download}
+                className="font-mono text-xs uppercase tracking-widest px-5 py-3 bg-amber text-primary-foreground border border-amber hover:bg-lime hover:border-lime transition-colors hover-lift inline-flex items-center gap-2"
+              >
+                ↓ Download protected
+              </button>
+            )}
           </div>
 
-          {/* Save-to-dashboard status */}
-          {loggedIn && result?.image_id && (
-            <p className="md:col-span-12 mt-1 font-mono text-xs text-lime">
-              Saved to your dashboard ✓{" "}
-              <Link to="/dashboard" className="underline hover:text-amber">
-                view
-              </Link>
-            </p>
+          {/* Prominent publish CTA — appears once a protected image exists */}
+          {result && !published && (
+            <div className="md:col-span-12">
+              <button
+                type="button"
+                onClick={onPublish}
+                disabled={publishing}
+                className="w-full font-mono text-sm uppercase tracking-widest px-6 py-4 bg-lime text-primary-foreground hover:bg-amber transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 hover-lift"
+              >
+                {publishing ? "publishing…" : "▲ Publish to gallery"}
+              </button>
+              <p className="mt-2 font-mono text-xs text-muted-foreground text-center">
+                {loggedIn
+                  ? "Publishing adds this image to the public gallery and takes you there."
+                  : "You'll be asked to sign in first."}
+              </p>
+            </div>
           )}
-          {!loggedIn && result && (
-            <p className="md:col-span-12 mt-1 font-mono text-xs text-muted-foreground">
-              <Link to="/auth" className="text-lime hover:text-amber">
-                Sign in
-              </Link>{" "}
-              to save results to a dashboard.
-            </p>
+
+          {/* Save + publish status */}
+          {result && (
+            <div className="md:col-span-12 mt-1 flex flex-wrap items-center gap-x-6 gap-y-2 font-mono text-xs">
+              {loggedIn && result.image_id ? (
+                <span className="text-lime">
+                  Saved to your profile ✓{" "}
+                  <Link to="/profile" className="underline hover:text-amber">
+                    view
+                  </Link>
+                </span>
+              ) : (
+                <span className="text-muted-foreground">
+                  <Link to="/auth" className="text-lime hover:text-amber">
+                    Sign in
+                  </Link>{" "}
+                  to save results to your profile.
+                </span>
+              )}
+
+              {published && (
+                <span className="text-lime">
+                  Published to gallery ✓{" "}
+                  <Link to="/gallery" className="underline hover:text-amber">
+                    view gallery
+                  </Link>
+                </span>
+              )}
+
+              {publishError && (
+                <span className="text-magenta">{publishError}</span>
+              )}
+            </div>
           )}
         </div>
 
@@ -231,29 +231,28 @@ export function ProtectionLab() {
         <div className="grid md:grid-cols-2 gap-6 mt-10">
           <LabPane
             label="Original"
-            accent="text-muted-foreground"
+            accent="text-lime"
             imgSrc={result?.original_url ?? previewUrl}
             hasImage={hasImage}
             onUploadClick={() => fileRef.current?.click()}
             predictions={result ? result.predictions : null}
             which="original"
             predictionLabel="model reads"
+            accentBorder
           />
           <LabPane
             label="Inkshielded"
-            accent="text-lime"
+            accent="text-muted-foreground"
             imgSrc={result?.protected_url ?? null}
             hasImage={hasImage}
-            onUploadClick={() => fileRef.current?.click()}
             predictions={result ? result.predictions : null}
             which="protected"
             predictionLabel="model now sees"
-            accentBorder
             loading={loading}
           />
         </div>
 
-        <p className="mt-8 text-xs text-muted-foreground font-mono max-w-2xl">
+        <p className="mt-8 text-base sm:text-lg text-foreground font-mono max-w-3xl leading-relaxed border-l-2 border-lime pl-5">
           note: your image is uploaded and protected server-side by a real
           4-step ensemble PGD attack against ResNet-50 and MobileNetV2 (~5–15s
           on CPU). files are stored privately on S3 and returned as time-limited
@@ -281,7 +280,7 @@ function LabPane({
   accent: string;
   imgSrc: string | null;
   hasImage: boolean;
-  onUploadClick: () => void;
+  onUploadClick?: () => void;
   predictions: ApiResult["predictions"] | null;
   which: "original" | "protected";
   predictionLabel: string;
@@ -309,11 +308,29 @@ function LabPane({
             style={{ maxHeight: MAX_DIM }}
           />
         ) : loading ? (
-          <div className="flex flex-col items-center justify-center gap-3 text-lime font-mono text-xs uppercase tracking-widest">
+          <div className="flex flex-col items-center justify-center gap-3 text-lime font-mono text-xs uppercase tracking-widest px-6 text-center">
             <span className="text-3xl animate-spin">⟳</span>
             <span>Running PGD attack…</span>
+            <span className="text-muted-foreground normal-case tracking-normal">
+              this usually takes 30 seconds to 1 minute
+            </span>
+            {/* The run lives in a module store, so browsing away keeps it going. */}
+            <div className="flex flex-col items-stretch gap-2 pt-3 w-full max-w-xs normal-case tracking-normal">
+              <a
+                href="#how"
+                className="px-3 py-2 border border-border text-muted-foreground hover:border-lime hover:text-lime transition-colors hover-lift"
+              >
+                Read the pipeline in the meantime →
+              </a>
+              <Link
+                to="/gallery"
+                className="px-3 py-2 border border-border text-muted-foreground hover:border-lime hover:text-lime transition-colors hover-lift"
+              >
+                Explore gallery in the meantime →
+              </Link>
+            </div>
           </div>
-        ) : (
+        ) : which === "original" ? (
           <button
             onClick={onUploadClick}
             className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-lime transition-colors font-mono text-xs uppercase tracking-widest hover-lift"
@@ -321,6 +338,11 @@ function LabPane({
             <span className="text-3xl">+</span>
             <span>upload to preview</span>
           </button>
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground font-mono text-xs uppercase tracking-widest">
+            <span className="text-2xl">◇</span>
+            <span>protected result appears here</span>
+          </div>
         )}
       </div>
       <div className="p-4 space-y-3">

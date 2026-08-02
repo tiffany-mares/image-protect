@@ -48,7 +48,7 @@ function GalleryPage() {
             </div>
           </div>
           <div className="lg:col-span-9">
-            <h1 className="font-display text-4xl lg:text-6xl leading-none">
+            <h1 className="font-display font-bold uppercase tracking-tight text-4xl lg:text-6xl leading-[0.95]">
               Works from the community.
             </h1>
             <p className="mt-6 text-lg text-muted-foreground max-w-2xl">

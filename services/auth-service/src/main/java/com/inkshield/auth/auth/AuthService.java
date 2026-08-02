@@ -1,6 +1,7 @@
 package com.inkshield.auth.auth;
 
 import com.inkshield.auth.email.EmailSender;
+import com.inkshield.auth.security.GoogleTokenVerifier;
 import com.inkshield.auth.security.JwtService;
 import com.inkshield.auth.user.User;
 import com.inkshield.auth.user.UserRepository;
@@ -17,12 +18,15 @@ public class AuthService {
     private final PasswordEncoder encoder;
     private final JwtService jwt;
     private final EmailSender email;
+    private final GoogleTokenVerifier google;
 
-    public AuthService(UserRepository repo, PasswordEncoder encoder, JwtService jwt, EmailSender email) {
+    public AuthService(UserRepository repo, PasswordEncoder encoder, JwtService jwt,
+                       EmailSender email, GoogleTokenVerifier google) {
         this.repo = repo;
         this.encoder = encoder;
         this.jwt = jwt;
         this.email = email;
+        this.google = google;
     }
 
     @Transactional
@@ -53,6 +57,23 @@ public class AuthService {
         if (!user.isVerified()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "email not verified");
         }
+        return jwt.issue(user.getId(), user.getEmail());
+    }
+
+    /**
+     * Sign in (or transparently register) via a Google ID token. Google has
+     * already verified the email, so the account is created pre-verified; an
+     * existing unverified email/password account for the same address is
+     * promoted to verified.
+     */
+    @Transactional
+    public String loginWithGoogle(String credential) {
+        String emailAddr = google.verify(credential);
+        User user = repo.findByEmail(emailAddr).orElseGet(() -> User.oauth(emailAddr));
+        if (!user.isVerified()) {
+            user.markVerified();
+        }
+        user = repo.save(user);
         return jwt.issue(user.getId(), user.getEmail());
     }
 }

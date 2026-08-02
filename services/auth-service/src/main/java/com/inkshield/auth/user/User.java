@@ -21,7 +21,8 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    // Nullable: OAuth (e.g. Google) accounts have no local password.
+    @Column(name = "password_hash")
     private String passwordHash;
 
     @Column(nullable = false)
@@ -39,6 +40,14 @@ public class User {
         this.email = email;
         this.passwordHash = passwordHash;
         this.verificationToken = verificationToken;
+    }
+
+    /** A pre-verified account for an OAuth (e.g. Google) sign-in — no local password. */
+    public static User oauth(String email) {
+        User u = new User();
+        u.email = email;
+        u.verified = true;
+        return u;
     }
 
     public UUID getId() { return id; }

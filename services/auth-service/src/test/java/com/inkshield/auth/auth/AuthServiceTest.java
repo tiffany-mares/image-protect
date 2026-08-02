@@ -1,6 +1,7 @@
 package com.inkshield.auth.auth;
 
 import com.inkshield.auth.email.EmailSender;
+import com.inkshield.auth.security.GoogleTokenVerifier;
 import com.inkshield.auth.security.JwtService;
 import com.inkshield.auth.user.User;
 import com.inkshield.auth.user.UserRepository;
@@ -34,7 +35,7 @@ class AuthServiceTest {
         repo = mock(UserRepository.class);
         email = mock(EmailSender.class);
         when(repo.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-        svc = new AuthService(repo, encoder, jwt, email);
+        svc = new AuthService(repo, encoder, jwt, email, mock(GoogleTokenVerifier.class));
     }
 
     @Test

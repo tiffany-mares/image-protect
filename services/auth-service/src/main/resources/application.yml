@@ -11,3 +11,4 @@ app:
   base-url: ${APP_BASE_URL:http://localhost:8080}
   ses-from: ${SES_FROM:tiffany.m.mares@gmail.com}
   jwt-secret: ${JWT_SECRET}
+  google-client-id: ${GOOGLE_CLIENT_ID:}

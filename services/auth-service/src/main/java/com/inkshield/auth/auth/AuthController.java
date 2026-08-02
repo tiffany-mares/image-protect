@@ -27,6 +27,7 @@ public class AuthController {
 
     public record SignupRequest(@Email @NotBlank String email, @NotBlank @Size(min = 8) String password) {}
     public record LoginRequest(@NotBlank String email, @NotBlank String password) {}
+    public record GoogleRequest(@NotBlank String credential) {}
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
@@ -44,6 +45,11 @@ public class AuthController {
     @PostMapping("/login")
     public Map<String, String> login(@RequestBody @Valid LoginRequest req) {
         return Map.of("token", auth.login(req.email(), req.password()));
+    }
+
+    @PostMapping("/google")
+    public Map<String, String> google(@RequestBody @Valid GoogleRequest req) {
+        return Map.of("token", auth.loginWithGoogle(req.credential()));
     }
 
     @ExceptionHandler(ApiException.class)
