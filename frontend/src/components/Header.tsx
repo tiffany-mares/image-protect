@@ -31,7 +31,7 @@ export function Header() {
           <a href="/#how" className={navClass}>How it works</a>
           <a href="/#strength" className={navClass}>Strength</a>
           <a href="/#privacy" className={navClass}>Privacy</a>
-          <a href="/#stack" className={navClass}>Stack</a>
+          <a href="/#stack" className={navClass}>Tech Stack</a>
           <Link to="/gallery" className={navClass}>Gallery</Link>
         </nav>
 

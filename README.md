@@ -18,7 +18,7 @@
 6. [How IBM Bob Was Used](#6-how-ibm-bob-was-used)
 7. [Known Tradeoffs](#7-known-tradeoffs)
 8. [Roadmap](#8-roadmap)
-9. [Stack](#stack)
+9. [Tech Stack](#tech-stack)
 10. [Quick Start](#quick-start)
 11. [Deployment](#deployment)
 
@@ -173,7 +173,7 @@ The backend runs on a persistent spot instance to minimise cost. A spot interrup
 
 ---
 
-## Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
