@@ -6,6 +6,7 @@ import { ProtectionLab } from "@/components/ProtectionLab";
 import { BootLoader } from "@/components/BootLoader";
 import { WordCycle } from "@/components/WordCycle";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { ArchitectureDiagram } from "@/components/ArchitectureDiagram";
 import { fetchGallery, type GalleryImage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import gradcamImg from "@/assets/gradcam-viz.jpg";
@@ -391,6 +392,13 @@ function Index() {
               <span className="text-amber">not a browser trick.</span>
             </h2>
           </div>
+        </div>
+
+        <div data-reveal className="mb-16">
+          <div className="font-mono text-xs uppercase tracking-widest text-amber mb-4">
+            System architecture
+          </div>
+          <ArchitectureDiagram />
         </div>
 
         <div data-reveal className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
