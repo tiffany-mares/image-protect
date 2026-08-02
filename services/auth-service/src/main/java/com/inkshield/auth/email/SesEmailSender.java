@@ -37,4 +37,20 @@ public class SesEmailSender implements EmailSender {
                         .build()).build())
                 .build());
     }
+
+    @Override
+    public void sendPasswordReset(String toEmail, String link) {
+        ses.sendEmail(SendEmailRequest.builder()
+                .fromEmailAddress(from)
+                .destination(Destination.builder().toAddresses(toEmail).build())
+                .content(EmailContent.builder().simple(Message.builder()
+                        .subject(Content.builder().data("Reset your InkShield password").build())
+                        .body(Body.builder().text(Content.builder()
+                                .data("We received a request to reset your InkShield password.\n\n"
+                                        + "Set a new password here (link expires in 1 hour):\n" + link
+                                        + "\n\nIf you didn't request this, you can ignore this email.").build())
+                                .build())
+                        .build()).build())
+                .build());
+    }
 }

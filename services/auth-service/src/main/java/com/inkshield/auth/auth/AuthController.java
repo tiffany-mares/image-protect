@@ -28,6 +28,8 @@ public class AuthController {
     public record SignupRequest(@Email @NotBlank String email, @NotBlank @Size(min = 8) String password) {}
     public record LoginRequest(@NotBlank String email, @NotBlank String password) {}
     public record GoogleRequest(@NotBlank String credential) {}
+    public record ForgotRequest(@Email @NotBlank String email) {}
+    public record ResetRequest(@NotBlank String token, @NotBlank @Size(min = 8) String password) {}
 
     @PostMapping("/signup")
     @ResponseStatus(HttpStatus.CREATED)
@@ -50,6 +52,18 @@ public class AuthController {
     @PostMapping("/google")
     public Map<String, String> google(@RequestBody @Valid GoogleRequest req) {
         return Map.of("token", auth.loginWithGoogle(req.credential()));
+    }
+
+    @PostMapping("/forgot-password")
+    public Map<String, String> forgotPassword(@RequestBody @Valid ForgotRequest req) {
+        auth.forgotPassword(req.email());
+        return Map.of("message", "if that email exists, a reset link has been sent");
+    }
+
+    @PostMapping("/reset-password")
+    public Map<String, String> resetPassword(@RequestBody @Valid ResetRequest req) {
+        auth.resetPassword(req.token(), req.password());
+        return Map.of("message", "password updated");
     }
 
     @ExceptionHandler(ApiException.class)

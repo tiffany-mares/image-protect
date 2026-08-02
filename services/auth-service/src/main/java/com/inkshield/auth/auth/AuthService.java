@@ -5,26 +5,38 @@ import com.inkshield.auth.security.GoogleTokenVerifier;
 import com.inkshield.auth.security.JwtService;
 import com.inkshield.auth.user.User;
 import com.inkshield.auth.user.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.UUID;
+
 @Service
 public class AuthService {
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
     private final UserRepository repo;
     private final PasswordEncoder encoder;
     private final JwtService jwt;
     private final EmailSender email;
     private final GoogleTokenVerifier google;
+    private final String frontendUrl;
 
     public AuthService(UserRepository repo, PasswordEncoder encoder, JwtService jwt,
-                       EmailSender email, GoogleTokenVerifier google) {
+                       EmailSender email, GoogleTokenVerifier google,
+                       @Value("${app.frontend-url}") String frontendUrl) {
         this.repo = repo;
         this.encoder = encoder;
         this.jwt = jwt;
         this.email = email;
         this.google = google;
+        this.frontendUrl = frontendUrl;
     }
 
     @Transactional
@@ -71,5 +83,40 @@ public class AuthService {
         }
         user = repo.save(user);
         return jwt.issue(user.getId(), user.getEmail());
+    }
+
+    /**
+     * Begin a password reset: if the email maps to an account, store a one-hour
+     * token and email a reset link. Always returns quietly — callers must not be
+     * able to tell whether an address is registered.
+     */
+    @Transactional
+    public void forgotPassword(String emailAddr) {
+        repo.findByEmail(emailAddr).ifPresent(user -> {
+            String token = UUID.randomUUID().toString();
+            user.startPasswordReset(token, Instant.now().plus(Duration.ofHours(1)));
+            repo.save(user);
+            try {
+                email.sendPasswordReset(user.getEmail(), frontendUrl + "/reset-password?token=" + token);
+            } catch (RuntimeException e) {
+                // A delivery failure (e.g. the SES sandbox rejecting an unverified
+                // recipient) must never surface to the caller or reveal whether the
+                // account exists. The reset token is stored regardless.
+                log.warn("password-reset email delivery failed: {}", e.getClass().getSimpleName());
+            }
+        });
+    }
+
+    /** Complete a password reset with a valid, unexpired token. */
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        User user = repo.findByResetToken(token)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "invalid or expired reset link"));
+        Instant expires = user.getResetTokenExpires();
+        if (expires == null || expires.isBefore(Instant.now())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "invalid or expired reset link");
+        }
+        user.completePasswordReset(encoder.encode(newPassword));
+        repo.save(user);
     }
 }

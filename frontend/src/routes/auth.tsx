@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -187,7 +187,7 @@ function AuthPage() {
               <GlassCardHeader>
                 <div className="font-mono text-xs uppercase tracking-[0.3em] text-lime mb-1 flex items-center gap-3">
                   <span className="w-8 h-px bg-lime" />
-                  {mode === "signup" ? "new operator" : "returning operator"}
+                  {mode === "signup" ? "new artist" : "returning artist"}
                 </div>
                 <GlassCardTitle className="font-display font-bold uppercase tracking-tight text-3xl sm:text-4xl leading-[0.95]">
                   {mode === "signup" ? "Create your account." : "Welcome back."}
@@ -217,9 +217,22 @@ function AuthPage() {
                     />
                   </div>
                   <div>
-                    <label htmlFor="password" className={labelClass}>
-                      Password
-                    </label>
+                    <div className="mb-2 flex items-center justify-between">
+                      <label
+                        htmlFor="password"
+                        className="font-mono text-[10px] uppercase tracking-widest text-white/60"
+                      >
+                        Password
+                      </label>
+                      {mode === "signin" && (
+                        <Link
+                          to="/forgot-password"
+                          className="font-mono text-[10px] uppercase tracking-widest text-white/50 hover:text-lime transition-colors"
+                        >
+                          Forgot?
+                        </Link>
+                      )}
+                    </div>
                     <div className="relative">
                       <input
                         id="password"

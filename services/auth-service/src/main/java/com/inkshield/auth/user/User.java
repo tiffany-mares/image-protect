@@ -31,6 +31,12 @@ public class User {
     @Column(name = "verification_token")
     private String verificationToken;
 
+    @Column(name = "reset_token")
+    private String resetToken;
+
+    @Column(name = "reset_token_expires")
+    private Instant resetTokenExpires;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
@@ -60,5 +66,21 @@ public class User {
     public void markVerified() {
         this.verified = true;
         this.verificationToken = null;
+    }
+
+    public String getResetToken() { return resetToken; }
+    public Instant getResetTokenExpires() { return resetTokenExpires; }
+
+    /** Begin a password reset: store a single-use token and its expiry. */
+    public void startPasswordReset(String token, Instant expires) {
+        this.resetToken = token;
+        this.resetTokenExpires = expires;
+    }
+
+    /** Finish a password reset: set the new hash and invalidate the token. */
+    public void completePasswordReset(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+        this.resetToken = null;
+        this.resetTokenExpires = null;
     }
 }
