@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useInView } from "framer-motion";
 import { Header } from "@/components/Header";
+import { cn } from "@/lib/utils";
 import { fetchGallery, like, type GalleryImage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
@@ -90,18 +92,11 @@ function GalleryPage() {
                 key={img.id}
                 className="border border-border bg-background/40 flex flex-col hover-lift"
               >
-                <div className="group relative aspect-square bg-ink overflow-hidden">
-                  {img.url ? (
-                    <img
-                      src={img.url}
-                      alt="Published protected image"
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-ink" />
-                  )}
-                </div>
+                {img.url ? (
+                  <AnimatedGalleryImage src={img.url} />
+                ) : (
+                  <div className="aspect-square bg-ink" />
+                )}
                 <div className="p-4 flex items-center justify-between font-mono text-xs">
                   <span className="text-muted-foreground uppercase tracking-widest">
                     {new Date(img.created_at).toLocaleDateString()}
@@ -121,6 +116,32 @@ function GalleryPage() {
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+/**
+ * A published gallery image that fades in once it scrolls into view and finishes
+ * loading — the AnimatedImage effect from components/ui/image-gallery, adapted to
+ * the gallery's square cards (keeps object-cover + the hover zoom).
+ */
+function AnimatedGalleryImage({ src }: { src: string }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "0px 0px -8% 0px" });
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div ref={ref} className="group relative aspect-square bg-ink overflow-hidden">
+      <img
+        src={src}
+        alt="Published protected image"
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        className={cn(
+          "w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105",
+          inView && loaded ? "opacity-100" : "opacity-0",
+        )}
+      />
     </div>
   );
 }

@@ -18,8 +18,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -39,7 +39,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void signupHashesPasswordAndSendsEmail() {
+    void signupHashesPasswordAndCreatesVerifiedAccount() {
         when(repo.existsByEmail("a@b.com")).thenReturn(false);
         svc.signup("a@b.com", "hunter22");
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
@@ -47,9 +47,10 @@ class AuthServiceTest {
         User saved = captor.getValue();
         assertThat(saved.getPasswordHash()).isNotEqualTo("hunter22");
         assertThat(encoder.matches("hunter22", saved.getPasswordHash())).isTrue();
-        assertThat(saved.isVerified()).isFalse();
-        assertThat(saved.getVerificationToken()).isNotBlank();
-        verify(email).sendVerification(eq("a@b.com"), eq(saved.getVerificationToken()));
+        // No email verification: created ready-to-use, no email sent.
+        assertThat(saved.isVerified()).isTrue();
+        assertThat(saved.getVerificationToken()).isNull();
+        verify(email, never()).sendVerification(any(), any());
     }
 
     @Test
@@ -93,15 +94,6 @@ class AuthServiceTest {
         assertThatThrownBy(() -> svc.login("a@b.com", "wrong"))
                 .isInstanceOfSatisfying(ApiException.class,
                         e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED));
-    }
-
-    @Test
-    void loginUnverifiedIs403() {
-        User u = new User("a@b.com", encoder.encode("pw"), "tok");
-        when(repo.findByEmail("a@b.com")).thenReturn(Optional.of(u));
-        assertThatThrownBy(() -> svc.login("a@b.com", "pw"))
-                .isInstanceOfSatisfying(ApiException.class,
-                        e -> assertThat(e.getStatus()).isEqualTo(HttpStatus.FORBIDDEN));
     }
 
     @Test

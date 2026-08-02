@@ -10,8 +10,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
-
 @Service
 public class AuthService {
     private final UserRepository repo;
@@ -34,9 +32,10 @@ public class AuthService {
         if (repo.existsByEmail(emailAddr)) {
             throw new ApiException(HttpStatus.CONFLICT, "email already registered");
         }
-        String token = UUID.randomUUID().toString();
-        User user = repo.save(new User(emailAddr, encoder.encode(password), token));
-        email.sendVerification(user.getEmail(), token);
+        // No email verification: the account is usable immediately.
+        User user = new User(emailAddr, encoder.encode(password), null);
+        user.markVerified();
+        repo.save(user);
     }
 
     @Transactional
@@ -53,9 +52,6 @@ public class AuthService {
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "bad credentials"));
         if (!encoder.matches(password, user.getPasswordHash())) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "bad credentials");
-        }
-        if (!user.isVerified()) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "email not verified");
         }
         return jwt.issue(user.getId(), user.getEmail());
     }

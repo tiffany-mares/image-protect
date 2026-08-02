@@ -75,7 +75,6 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
@@ -141,13 +140,12 @@ function AuthPage() {
     setError(null);
     setBusy(true);
     try {
+      // No email verification: after signup we log straight in.
       if (mode === "signup") {
         await signup(email, password);
-        setSent(true);
-      } else {
-        setToken(await login(email, password));
-        navigate({ to: "/profile" });
       }
+      setToken(await login(email, password));
+      navigate({ to: "/profile" });
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -185,34 +183,7 @@ function AuthPage() {
 
       <main className="relative z-10 min-h-screen flex items-center justify-center px-6 pt-28 pb-16">
         <div className="w-full max-w-md">
-          {sent ? (
-            <GlassCard>
-              <GlassCardHeader>
-                <GlassCardTitle className="font-display font-bold uppercase tracking-tight text-2xl">
-                  Check your email
-                </GlassCardTitle>
-                <GlassCardDescription className="text-white/70 font-mono">
-                  We sent a verification link to{" "}
-                  <span className="text-lime">{email}</span>. Click it, then sign
-                  in. (Check spam.)
-                </GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardFooter>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSent(false);
-                    setMode("signin");
-                    setPassword("");
-                  }}
-                  className="font-mono text-xs uppercase tracking-widest text-lime hover:text-amber transition-colors hover-lift"
-                >
-                  Go to sign in →
-                </button>
-              </GlassCardFooter>
-            </GlassCard>
-          ) : (
-            <GlassCard>
+          <GlassCard>
               <GlassCardHeader>
                 <div className="font-mono text-xs uppercase tracking-[0.3em] text-lime mb-1 flex items-center gap-3">
                   <span className="w-8 h-px bg-lime" />
@@ -223,7 +194,7 @@ function AuthPage() {
                 </GlassCardTitle>
                 <GlassCardDescription className="text-white/70">
                   {mode === "signup"
-                    ? "We'll email you a verification link to confirm your address."
+                    ? "Create an account to save, favorite, and publish your protected images."
                     : "Sign in to sync your protection settings across sessions."}
                 </GlassCardDescription>
               </GlassCardHeader>
@@ -327,7 +298,6 @@ function AuthPage() {
                 </button>
               </GlassCardFooter>
             </GlassCard>
-          )}
         </div>
       </main>
     </div>
