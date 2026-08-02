@@ -38,7 +38,7 @@ export function BootLoader() {
   const lines = [
     { stamp: stampOffset(-4), text: "boot · initializing protection pipeline", tone: "muted" },
     { stamp: stampOffset(-2), text: "ensemble · ResNet-50 + MobileNetV2 loaded", tone: "muted" },
-    { stamp: stampOffset(0), text: "OK ready — drop in an image to protect it", tone: "lime" },
+    { stamp: stampOffset(0), text: "OK ready, drop in an image to protect it", tone: "lime" },
   ];
 
   return (

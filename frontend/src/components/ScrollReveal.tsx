@@ -7,7 +7,7 @@ import { useEffect } from "react";
  *
  * Gating the hidden state behind the `reveal-active` class (added here, in an
  * effect that only runs client-side) means server-rendered / no-JS output shows
- * all content normally — the effect is pure progressive enhancement.
+ * all content normally, the effect is pure progressive enhancement.
  */
 export function ScrollReveal() {
   useEffect(() => {

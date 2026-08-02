@@ -60,7 +60,7 @@ function ResetPasswordPage() {
     setBusy(true);
     try {
       await performReset(token, password);
-      // Success — send them to sign in with the new password.
+      // Success, send them to sign in with the new password.
       navigate({ to: "/auth" });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Reset failed");

@@ -122,7 +122,7 @@ function GalleryPage() {
 
 /**
  * A published gallery image that fades in once it scrolls into view and finishes
- * loading — the AnimatedImage effect from components/ui/image-gallery, adapted to
+ * loading, the AnimatedImage effect from components/ui/image-gallery, adapted to
  * the gallery's square cards (keeps object-cover + the hover zoom).
  */
 function AnimatedGalleryImage({ src }: { src: string }) {

@@ -64,7 +64,7 @@
   --magenta: oklch(0.62 0.26 340);
 }
 
-/* Light palette — applied when <html> has the `light` class (ThemeToggle). */
+/* Light palette, applied when <html> has the `light` class (ThemeToggle). */
 .light {
   --background: oklch(0.97 0.005 80);
   --foreground: oklch(0.14 0.02 85);
@@ -144,7 +144,7 @@
     -1px 0 0 color-mix(in oklab, var(--magenta) 60%, transparent);
 }
 
-/* Hollow / outlined display type — the stroked-headline look from inngest.com.
+/* Hollow / outlined display type, the stroked-headline look from inngest.com.
    Transparent fill with a text stroke; pair with a large uppercase grotesque. */
 @utility text-outline {
   color: transparent;
@@ -256,7 +256,7 @@
   }
 }
 
-/* Scroll-reveal — content blurs, dims and rises, then snaps into focus as it
+/* Scroll-reveal, content blurs, dims and rises, then snaps into focus as it
    enters the viewport (inspired by recompile-web). Gated behind .reveal-active,
    which the ScrollReveal component adds on mount, so users without JS still see
    everything. Stagger neighbours with --reveal-delay. */

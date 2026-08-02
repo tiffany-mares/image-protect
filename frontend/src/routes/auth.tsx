@@ -55,7 +55,7 @@ async function loginWithGoogle(credential: string): Promise<string> {
       const body = await res.json();
       if (typeof body.error === "string") message = body.error;
     } catch {
-      // non-JSON error body — keep the generic message
+      // non-JSON error body, keep the generic message
     }
     throw new ApiError(res.status, message);
   }

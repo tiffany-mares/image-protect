@@ -100,7 +100,7 @@ function ProfilePage() {
               ))}
             </nav>
 
-            {/* SIGN OUT — separate section at the bottom */}
+            {/* SIGN OUT, separate section at the bottom */}
             <div className="mt-auto pt-8">
               <div className="border-t border-border pt-6">
                 <div className="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground mb-3">

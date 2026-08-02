@@ -20,7 +20,7 @@ const okJson = (body: unknown, status = 200) =>
 
 describe("api client", () => {
   const fetchMock = vi.fn();
-  // Note: no unstubAllGlobals() — it would also remove the module-level
+  // Note: no unstubAllGlobals(), it would also remove the module-level
   // window stub that auth.ts's token storage depends on.
   beforeEach(() => {
     store.clear();

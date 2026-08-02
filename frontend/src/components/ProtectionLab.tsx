@@ -40,7 +40,7 @@ export function ProtectionLab() {
 
   const download = () => {
     if (!result) return;
-    // Prefer download_url — a presigned URL signed with a Content-Disposition
+    // Prefer download_url, a presigned URL signed with a Content-Disposition
     // override, so S3 serves it as an attachment and the browser downloads it
     // (the plain cross-origin protected_url would just open in the tab, since
     // the <a download> attribute is ignored cross-origin). Fall back to
@@ -59,7 +59,7 @@ export function ProtectionLab() {
       return;
     }
     const ok = await publishResult();
-    // Signed-in publish succeeded — take the user straight to the gallery.
+    // Signed-in publish succeeded, take the user straight to the gallery.
     if (ok) navigate({ to: "/gallery" });
   };
 
@@ -166,7 +166,7 @@ export function ProtectionLab() {
             )}
           </div>
 
-          {/* Prominent publish CTA — appears once a protected image exists */}
+          {/* Prominent publish CTA, appears once a protected image exists */}
           {result && !published && (
             <div className="md:col-span-12">
               <button

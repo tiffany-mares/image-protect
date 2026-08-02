@@ -400,7 +400,7 @@ function Index() {
           <div className="border border-border bg-ink/40 p-4 sm:p-6 flex justify-center">
             <img
               src="/architecture.png"
-              alt="InkShield software architecture — frontend to gateway to auth/ML services to the data layer"
+              alt="InkShield software architecture, frontend to gateway to auth/ML services to the data layer"
               className="w-full max-w-2xl h-auto"
               loading="lazy"
             />

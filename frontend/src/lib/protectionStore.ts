@@ -73,7 +73,7 @@ export function subscribe(cb: () => void): () => void {
   };
 }
 
-// Stable reference between emits — required by useSyncExternalStore. Server
+// Stable reference between emits, required by useSyncExternalStore. Server
 // snapshot is the same (runs only ever start from client interaction).
 export function getSnapshot(): ProtectionState {
   return state;
@@ -156,7 +156,7 @@ export async function runProtection() {
  */
 export async function publishResult(): Promise<boolean> {
   if (!state.result?.image_id) {
-    set({ publishError: "couldn't save this image — re-run protection, then publish" });
+    set({ publishError: "couldn't save this image, re-run protection, then publish" });
     return false;
   }
   set({ publishing: true, publishError: null });
