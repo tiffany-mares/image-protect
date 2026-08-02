@@ -6,7 +6,6 @@ import { ProtectionLab } from "@/components/ProtectionLab";
 import { BootLoader } from "@/components/BootLoader";
 import { WordCycle } from "@/components/WordCycle";
 import { ScrollReveal } from "@/components/ScrollReveal";
-import { ArchitectureDiagram } from "@/components/ArchitectureDiagram";
 import { fetchGallery, type GalleryImage } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import gradcamImg from "@/assets/gradcam-viz.jpg";
@@ -398,7 +397,14 @@ function Index() {
           <div className="font-mono text-xs uppercase tracking-widest text-amber mb-4">
             System architecture
           </div>
-          <ArchitectureDiagram />
+          <div className="border border-border bg-ink/40 p-4 sm:p-6 flex justify-center">
+            <img
+              src="/architecture.png"
+              alt="InkShield software architecture — frontend to gateway to auth/ML services to the data layer"
+              className="w-full max-w-2xl h-auto"
+              loading="lazy"
+            />
+          </div>
         </div>
 
         <div data-reveal className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
@@ -481,7 +487,7 @@ function Index() {
             <span>inkshield, a form of digital self-defense</span>
           </div>
           <div className="flex gap-6 items-center uppercase tracking-widest">
-            <a href="https://github.com/tiffany-mares/image-protect" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="hover:text-lime transition-colors hover-lift"><Github size={16} strokeWidth={1.5} /></a>
+            <a href="https://github.com/tiffany-mares/inkshield" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="hover:text-lime transition-colors hover-lift"><Github size={16} strokeWidth={1.5} /></a>
             <a href="https://www.linkedin.com/in/tiffanymares/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="hover:text-lime transition-colors hover-lift"><Linkedin size={16} strokeWidth={1.5} /></a>
             <a href="https://tiffanymares.com/" target="_blank" rel="noopener noreferrer" className="hover:text-lime transition-colors hover-lift">Contact</a>
           </div>

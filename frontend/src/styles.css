@@ -222,15 +222,15 @@
 @utility hover-lift {
   transition: transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94), color 150ms ease, background-color 150ms ease, border-color 150ms ease, filter 200ms ease;
   &:hover:not(:disabled):not([aria-disabled="true"]) {
-    transform: translateY(-4px) scale(1.03);
+    transform: translateY(-3px) scale(1.02);
     box-shadow:
-      0 0 24px color-mix(in oklab, var(--lime) 50%, transparent),
-      0 10px 32px color-mix(in oklab, var(--lime) 28%, transparent);
-    filter: drop-shadow(0 0 6px color-mix(in oklab, var(--lime) 45%, transparent));
+      0 0 16px color-mix(in oklab, var(--lime) 32%, transparent),
+      0 8px 24px color-mix(in oklab, var(--lime) 16%, transparent);
+    filter: drop-shadow(0 0 4px color-mix(in oklab, var(--lime) 26%, transparent));
   }
   &:active:not(:disabled):not([aria-disabled="true"]) {
     transform: translateY(-1px) scale(1.01);
-    box-shadow: 0 0 14px color-mix(in oklab, var(--lime) 35%, transparent);
+    box-shadow: 0 0 10px color-mix(in oklab, var(--lime) 22%, transparent);
   }
 }
 
@@ -240,18 +240,18 @@
   }
   @media (hover: hover) {
     input[type="range"]:hover:not(:disabled) {
-      box-shadow: 0 0 0 5px color-mix(in oklab, var(--lime) 40%, transparent);
-      filter: drop-shadow(0 0 8px color-mix(in oklab, var(--lime) 50%, transparent));
+      box-shadow: 0 0 0 4px color-mix(in oklab, var(--lime) 26%, transparent);
+      filter: drop-shadow(0 0 6px color-mix(in oklab, var(--lime) 32%, transparent));
       border-radius: 999px;
     }
     select:hover:not(:disabled) {
-      box-shadow: 0 0 0 3px color-mix(in oklab, var(--lime) 55%, transparent);
-      filter: drop-shadow(0 0 8px color-mix(in oklab, var(--lime) 45%, transparent));
-      transform: translateY(-2px);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--lime) 36%, transparent);
+      filter: drop-shadow(0 0 6px color-mix(in oklab, var(--lime) 28%, transparent));
+      transform: translateY(-1px);
     }
     input:hover:not(:disabled):not([type="range"]):not([type="checkbox"]):not([type="radio"]),
     textarea:hover:not(:disabled) {
-      box-shadow: 0 0 0 2px color-mix(in oklab, var(--lime) 45%, transparent);
+      box-shadow: 0 0 0 2px color-mix(in oklab, var(--lime) 30%, transparent);
     }
   }
 }

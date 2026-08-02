@@ -45,7 +45,7 @@ export function Header() {
             Contact
           </a>
           <a
-            href="https://github.com/tiffany-mares/image-protect"
+            href="https://github.com/tiffany-mares/inkshield"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub"

@@ -96,40 +96,7 @@ Both models run on CPU; weights are downloaded automatically by `torchvision` an
 
 The system is a set of small services behind a single API gateway, all running on one EC2 instance under k3s (lightweight Kubernetes). The React frontend is hosted separately on Vercel and talks only to the gateway.
 
-```mermaid
-flowchart TD
-  U(["Artist / Browser"]):::user
-  FE["React Frontend<br/>inkshield.art · Vercel"]:::frontend
-  ING["Traefik Ingress · Let's Encrypt TLS<br/>inkshield-api.duckdns.org (k3s)"]:::edge
-  GW["Go API Gateway<br/>verifies JWT locally · gallery / likes SQL · S3 presign · reverse proxy"]:::gateway
-  AUTH["Spring Boot · Auth<br/>email + password · Google OAuth · password reset · JWT issue"]:::auth
-  ML["FastAPI · ML Service<br/>ensemble PGD · ResNet-50 + MobileNetV2"]:::ml
-  PG[("PostgreSQL · Neon<br/>users · images · likes")]:::data
-  MG[("MongoDB · Atlas<br/>ML job metadata")]:::data
-  S3[("AWS S3<br/>private · presigned URLs")]:::data
-  SES["AWS SES<br/>password-reset email"]:::data
-
-  U -->|HTTPS| FE
-  FE -->|API · CORS pinned| ING
-  ING --> GW
-  GW -->|auth| AUTH
-  GW -->|protect| ML
-  GW --> PG
-  AUTH --> PG
-  ML --> PG
-  ML --> S3
-  ML --> MG
-  AUTH --> SES
-  GW --> S3
-
-  classDef user fill:#1f1f1f,stroke:#888888,color:#eaeaea;
-  classDef frontend fill:#c6ed4a,stroke:#8fae2f,color:#141414;
-  classDef edge fill:#2a2a2a,stroke:#c6ed4a,color:#e8e8e8;
-  classDef gateway fill:#e6aa5c,stroke:#b07f38,color:#141414;
-  classDef auth fill:#c6ed4a,stroke:#8fae2f,color:#141414;
-  classDef ml fill:#e23c9e,stroke:#a82c76,color:#ffffff;
-  classDef data fill:#242424,stroke:#6a6a6a,color:#e8e8e8;
-```
+![InkShield software architecture — a four-tier flow from the frontend through the gateway to the auth/ML services and the data layer](./architecture.png)
 
 **Data flow:** the browser hits **inkshield.art** (Vercel), which calls the single **Go gateway** behind Traefik TLS. The gateway verifies the JWT locally and either serves gallery/profile data from Postgres (presigning S3 URLs) or reverse-proxies to **Auth** (`/auth/*`) or the **ML service** (`/protect`). The ML service runs the ensemble PGD attack, stores the image in S3, logs metadata to MongoDB, and — for a signed-in user — writes the `images` row in Postgres.
 
